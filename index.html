@@ -2,27 +2,28 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Mobile Shooter</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Mobile Arena</title>
 
 <style>
 body{
 margin:0;
 overflow:hidden;
 touch-action:none;
-background:#1e1e1e;
+background:#1b1b1b;
 }
 
 canvas{
 display:block;
-background:#2e8b57;
+background:#2f8f4e;
 }
 
 #hpBar{
 position:absolute;
 top:15px;
 left:15px;
-width:200px;
-height:20px;
+width:250px;
+height:22px;
 background:#444;
 }
 
@@ -32,29 +33,60 @@ width:100%;
 background:lime;
 }
 
-#shoot{
+#joystick{
+position:absolute;
+left:40px;
+bottom:40px;
+width:120px;
+height:120px;
+background:rgba(255,255,255,0.15);
+border-radius:50%;
+}
+
+#stick{
+position:absolute;
+left:75px;
+bottom:75px;
+width:50px;
+height:50px;
+background:rgba(255,255,255,0.5);
+border-radius:50%;
+}
+
+#shoot,#super{
 position:absolute;
 right:40px;
-bottom:50px;
-width:80px;
-height:80px;
+width:85px;
+height:85px;
 border-radius:50%;
-background:red;
 color:white;
 display:flex;
 align-items:center;
 justify-content:center;
 font-weight:bold;
 }
+
+#shoot{
+bottom:50px;
+background:red;
+}
+
+#super{
+bottom:150px;
+background:blue;
+}
 </style>
 </head>
 
 <body>
 
-<canvas id="game" width="900" height="500"></canvas>
+<canvas id="game" width="1200" height="700"></canvas>
 
 <div id="hpBar"><div id="hp"></div></div>
+<div id="joystick"></div>
+<div id="stick"></div>
 <div id="shoot">🔥</div>
+<div id="super">⭐</div>
 
 <script>
 
@@ -62,148 +94,152 @@ const canvas=document.getElementById("game")
 const ctx=canvas.getContext("2d")
 
 let player={
-x:450,
-y:250,
-hp:100
+x:600,
+y:350,
+hp:200,
+level:1
 }
 
+let move={x:0,y:0}
 let bullets=[]
 let enemies=[]
 let enemyBullets=[]
-let grenades=[]
-let explosions=[]
+let superReady=true
 
-let bushes=[
-{x:200,y:150,w:100,h:80},
-{x:600,y:300,w:120,h:90}
-]
+// большой мир
+let mapSize={w:3000,h:2000}
 
-function spawnEnemy(){
-let types=["red","green","purple"]
-let type=types[Math.floor(Math.random()*3)]
+let joystick=document.getElementById("joystick")
+let stick=document.getElementById("stick")
 
-enemies.push({
-x:Math.random()*850+25,
-y:Math.random()*450+25,
-type:type,
-cool:0
-})
-}
-
-setInterval(spawnEnemy,2000)
-
-document.addEventListener("touchmove",e=>{
+joystick.addEventListener("touchmove",e=>{
 let t=e.touches[0]
-player.x=t.clientX
-player.y=t.clientY
+let rect=joystick.getBoundingClientRect()
+
+let x=t.clientX-(rect.left+60)
+let y=t.clientY-(rect.top+60)
+
+move.x=x/40
+move.y=y/40
+
+})
+
+joystick.addEventListener("touchend",()=>{
+move.x=0
+move.y=0
 })
 
 document.getElementById("shoot").addEventListener("touchstart",shoot)
+
+document.getElementById("super").addEventListener("touchstart",superAttack)
 
 function shoot(){
 
 bullets.push({
 x:player.x,
 y:player.y,
-vx:8,
-vy:0
+vx:10,
+vy:0,
+damage:15+player.level*2
 })
 
-playSound("shoot")
+}
+
+function superAttack(){
+
+if(!superReady) return
+
+for(let i=0;i<20;i++){
+bullets.push({
+x:player.x,
+y:player.y,
+vx:Math.cos(i)*8,
+vy:Math.sin(i)*8,
+damage:25
+})
+}
+
+superReady=false
+setTimeout(()=>superReady=true,6000)
 
 }
 
-function playSound(type){
+function spawnEnemy(){
 
-let url=""
+let types=["red","green","purple"]
+let type=types[Math.floor(Math.random()*3)]
 
-if(type==="shoot")
-url="https://actions.google.com/sounds/v1/weapons/laser_shot.ogg"
-
-if(type==="explosion")
-url="https://actions.google.com/sounds/v1/explosions/explosion.ogg"
-
-let audio=new Audio(url)
-audio.volume=0.3
-audio.play()
+enemies.push({
+x:Math.random()*2800+100,
+y:Math.random()*1800+100,
+type:type,
+hp:50,
+cool:0
+})
 
 }
 
-function updateEnemies(){
+setInterval(spawnEnemy,2500)
 
-enemies.forEach(e=>{
+function enemyAI(e){
 
 let dx=player.x-e.x
 let dy=player.y-e.y
 let dist=Math.sqrt(dx*dx+dy*dy)
 
-if(dist>0){
-e.x+=dx/dist*0.8
-e.y+=dy/dist*0.8
+// держат дистанцию
+if(dist<300){
+e.x-=dx/dist*0.6
+e.y-=dy/dist*0.6
+}else{
+e.x+=dx/dist*0.4
+e.y+=dy/dist*0.4
 }
-
-e.cool--
-
-if(e.cool<=0){
-
-if(e.type==="red"){
-shootEnemy(e,4,0.15,6)
-}
-
-if(e.type==="green"){
-grenades.push({x:e.x,y:e.y,vx:(player.x-e.x)/60,vy:(player.y-e.y)/60})
-}
-
-if(e.type==="purple"){
-shootEnemy(e,1,0.05,10)
-}
-
-e.cool=100
 
 }
 
-})
+function enemyShoot(e){
 
-}
-
-function shootEnemy(e,count,spread,speed){
-
-for(let i=0;i<count;i++){
+if(e.type==="red" && e.cool<=0){
 
 enemyBullets.push({
 x:e.x,
 y:e.y,
-vx:(Math.random()-0.5)*spread*10,
-vy:(Math.random()-0.5)*spread*10
+vx:(player.x-e.x)/80,
+vy:(player.y-e.y)/80,
+damage:8
 })
 
+e.cool=120
 }
 
 }
 
 function update(){
 
-bullets.forEach(b=>b.x+=b.vx)
+player.x+=move.x
+player.y+=move.y
+
+bullets.forEach(b=>{
+b.x+=b.vx
+b.y+=b.vy
+})
+
 enemyBullets.forEach(b=>{
 b.x+=b.vx
 b.y+=b.vy
 })
 
-grenades.forEach(g=>{
-g.x+=g.vx
-g.y+=g.vy
-})
-
 }
 
-function collisions(){
+function collision(){
 
 bullets.forEach(b=>{
 enemies.forEach(e=>{
 let dx=b.x-e.x
 let dy=b.y-e.y
 if(Math.sqrt(dx*dx+dy*dy)<15){
-e.hp=0
+e.hp-=b.damage
 b.x=-999
 }
 })
@@ -212,40 +248,27 @@ b.x=-999
 enemyBullets.forEach(b=>{
 let dx=b.x-player.x
 let dy=b.y-player.y
-if(Math.sqrt(dx*dx+dy*dy)<12){
-player.hp-=10
+if(Math.sqrt(dx*dx+dy*dy)<15){
+player.hp-=b.damage
 b.x=-999
 }
 })
 
-grenades.forEach(g=>{
-let dx=g.x-player.x
-let dy=g.y-player.y
-if(Math.sqrt(dx*dx+dy*dy)<20){
-player.hp-=20
-playSound("explosion")
-g.x=-999
-}
-})
-
-enemies=enemies.filter(e=>e.hp!==0)
+enemies=enemies.filter(e=>e.hp>0)
 
 }
 
 function draw(){
 
-ctx.clearRect(0,0,900,500)
+ctx.clearRect(0,0,1200,700)
 
-// кусты
-ctx.fillStyle="green"
-bushes.forEach(b=>{
-ctx.fillRect(b.x,b.y,b.w,b.h)
-})
+ctx.fillStyle="#2f8f4e"
+ctx.fillRect(0,0,mapSize.w,mapSize.h)
 
 // игрок
 ctx.fillStyle="blue"
 ctx.beginPath()
-ctx.arc(player.x,player.y,15,0,Math.PI*2)
+ctx.arc(player.x,player.y,18,0,Math.PI*2)
 ctx.fill()
 
 // враги
@@ -253,7 +276,7 @@ enemies.forEach(e=>{
 ctx.fillStyle=e.type==="red"?"red":
 e.type==="green"?"lime":"purple"
 ctx.beginPath()
-ctx.arc(e.x,e.y,14,0,Math.PI*2)
+ctx.arc(e.x,e.y,15,0,Math.PI*2)
 ctx.fill()
 })
 
@@ -268,22 +291,29 @@ enemyBullets.forEach(b=>ctx.fillRect(b.x,b.y,5,5))
 
 function hpUpdate(){
 
-document.getElementById("hp").style.width=player.hp+"%"
+document.getElementById("hp").style.width=(player.hp/200*100)+"%"
 
 if(player.hp<=0){
-alert("Game Over")
 location.reload()
 }
 
 }
 
 function loop(){
-updateEnemies()
+
+enemies.forEach(e=>{
+e.cool--
+enemyAI(e)
+enemyShoot(e)
+})
+
 update()
-collisions()
+collision()
 draw()
 hpUpdate()
+
 requestAnimationFrame(loop)
+
 }
 
 loop()
