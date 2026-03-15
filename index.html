@@ -2,13 +2,13 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Phone Breaker</title>
+<title>Phone Destroyer</title>
 
 <style>
 
 body{
 margin:0;
-background:#101010;
+background:linear-gradient(180deg,#0f0f0f,#1a1a1a);
 color:white;
 font-family:Arial;
 overflow:hidden;
@@ -16,12 +16,13 @@ overflow:hidden;
 
 #ui{
 position:absolute;
-left:20px;
+left:120px;
 top:20px;
 width:260px;
 background:#1e1e1e;
 padding:15px;
-border-radius:10px;
+border-radius:12px;
+box-shadow:0 0 20px #000;
 }
 
 button{
@@ -31,6 +32,12 @@ padding:8px;
 border:none;
 border-radius:6px;
 cursor:pointer;
+background:#333;
+color:white;
+}
+
+button:hover{
+background:#444;
 }
 
 canvas{
@@ -39,7 +46,7 @@ right:0;
 top:0;
 }
 
-.tab{
+#shop{
 display:none;
 }
 
@@ -53,40 +60,27 @@ display:none;
 <h3>Очки: <span id="points">0</span></h3>
 Оружие: <span id="weapon">Палка</span>
 
-<br><br>
-
-<button onclick="openTab('game')">Игра</button>
-<button onclick="openTab('shop')">Магазин</button>
-
-<div id="game" class="tab">
-
 <button onclick="upgradeWeapon()">
 Улучшить оружие (<span id="weaponCost"></span>)
 </button>
 
-</div>
+<br><br>
 
-<div id="shop" class="tab">
+<button onclick="toggleShop()">🛒 Магазин</button>
 
-<h4>Улучшения</h4>
+<div id="shop">
 
-<button onclick="buyUpgrade(2,500)">
-+2 за точку (500)
-</button>
+<h4>Бонус очков</h4>
 
-<button onclick="buyUpgrade(5,2000)">
-+5 за точку (2000)
-</button>
-
-<button onclick="buyUpgrade(10,5000)">
-+10 за точку (5000)
-</button>
+<button onclick="buyUpgrade(1,50)">+1 за точку (50)</button>
+<button onclick="buyUpgrade(2,120)">+2 за точку (120)</button>
+<button onclick="buyUpgrade(5,400)">+5 за точку (400)</button>
 
 <h4>Автокликер</h4>
 
-<button onclick="buyAuto(1,500)">1 клик/с (500)</button>
-<button onclick="buyAuto(5,2500)">5 кликов/с (2500)</button>
-<button onclick="buyAuto(20,10000)">20 кликов/с (10000)</button>
+<button onclick="buyAuto(1,80)">1 клик/с (80)</button>
+<button onclick="buyAuto(5,350)">5 кликов/с (350)</button>
+<button onclick="buyAuto(10,900)">10 кликов/с (900)</button>
 
 </div>
 
@@ -109,14 +103,14 @@ let weapons = [
 
 {n:"Палка",d:1,c:50},
 {n:"Камень",d:2,c:150},
-{n:"Молоток",d:3,c:400},
-{n:"Бита",d:4,c:900},
-{n:"Кувалда",d:6,c:2000},
-{n:"Дрель",d:8,c:4000},
-{n:"Пила",d:10,c:8000},
-{n:"Дробовик",d:15,c:15000},
-{n:"Ракетница",d:25,c:30000},
-{n:"Лазер",d:40,c:60000}
+{n:"Молоток",d:3,c:300},
+{n:"Бита",d:4,c:700},
+{n:"Кувалда",d:6,c:1500},
+{n:"Дрель",d:8,c:3000},
+{n:"Пила",d:10,c:6000},
+{n:"Дробовик",d:15,c:12000},
+{n:"Ракетница",d:25,c:20000},
+{n:"Лазер",d:40,c:35000}
 
 ]
 
@@ -124,6 +118,9 @@ let hits = 0
 let maxHits = 10
 
 let weak = spawnPoint()
+
+let particles=[]
+let cracks=[]
 
 function spawnPoint(){
 
@@ -137,28 +134,22 @@ r:22
 
 function drawPhone(){
 
-ctx.fillStyle="#444"
+ctx.fillStyle="#555"
 ctx.fillRect(450,120,200,320)
 
 ctx.fillStyle="#00aaff"
 ctx.fillRect(465,140,170,260)
 
-if(hits>2) drawCrack()
-if(hits>5) drawCrack()
-if(hits>8) drawCrack()
-
-}
-
-function drawCrack(){
+cracks.forEach(c=>{
 
 ctx.strokeStyle="white"
 
 ctx.beginPath()
-
-ctx.moveTo(470+Math.random()*150,150+Math.random()*250)
-ctx.lineTo(470+Math.random()*150,150+Math.random()*250)
-
+ctx.moveTo(c.x,c.y)
+ctx.lineTo(c.x2,c.y2)
 ctx.stroke()
+
+})
 
 }
 
@@ -172,31 +163,75 @@ ctx.fill()
 
 }
 
-canvas.onclick = e=>{
+function spawnGlass(x,y){
 
-const rect = canvas.getBoundingClientRect()
+for(let i=0;i<8;i++){
 
-const mx = e.clientX-rect.left
-const my = e.clientY-rect.top
+particles.push({
 
-const dx = mx-weak.x
-const dy = my-weak.y
+x:x,
+y:y,
+vx:(Math.random()-0.5)*6,
+vy:(Math.random()-0.5)*6,
+life:40
+
+})
+
+}
+
+}
+
+function drawParticles(){
+
+particles.forEach(p=>{
+
+ctx.fillStyle="#aeefff"
+ctx.fillRect(p.x,p.y,3,3)
+
+p.x+=p.vx
+p.y+=p.vy
+p.life--
+
+})
+
+particles=particles.filter(p=>p.life>0)
+
+}
+
+canvas.onclick=e=>{
+
+const rect=canvas.getBoundingClientRect()
+
+const mx=e.clientX-rect.left
+const my=e.clientY-rect.top
+
+const dx=mx-weak.x
+const dy=my-weak.y
 
 if(Math.sqrt(dx*dx+dy*dy)<weak.r){
 
-hit()
+hit(mx,my)
 
 }
 
 }
 
-function hit(){
+function hit(x,y){
 
-points += weapons[weaponLevel].d * bonus
+points+=weapons[weaponLevel].d*bonus
 
 hits++
 
-weak = spawnPoint()
+spawnGlass(x,y)
+
+cracks.push({
+x:x,
+y:y,
+x2:x+(Math.random()*40-20),
+y2:y+(Math.random()*40-20)
+})
+
+weak=spawnPoint()
 
 if(hits>=maxHits){
 
@@ -209,29 +244,30 @@ setTimeout(resetPhone,300)
 function resetPhone(){
 
 hits=0
-weak = spawnPoint()
+cracks=[]
+weak=spawnPoint()
 
 }
 
 function upgradeWeapon(){
 
-let next = weapons[weaponLevel+1]
+let next=weapons[weaponLevel+1]
 
 if(next && points>=next.c){
 
-points -= next.c
+points-=next.c
 weaponLevel++
 
 }
 
 }
 
-function buyUpgrade(value,cost){
+function buyUpgrade(v,c){
 
-if(points>=cost){
+if(points>=c){
 
-points-=cost
-bonus+=value
+points-=c
+bonus+=v
 
 }
 
@@ -248,33 +284,34 @@ auto+=v
 
 }
 
+function toggleShop(){
+
+let shop=document.getElementById("shop")
+
+shop.style.display=
+shop.style.display=="none"?"block":"none"
+
+}
+
 setInterval(()=>{
 
-for(let i=0;i<auto;i++) hit()
+for(let i=0;i<auto;i++) hit(550,250)
 
 },1000)
 
 function drawUI(){
 
 document.getElementById("points").innerText=Math.floor(points)
-document.getElementById("weapon").innerText=weapons[weaponLevel].n
 
-let next = weapons[weaponLevel+1]
+document.getElementById("weapon").innerText=
+weapons[weaponLevel].n
 
-document.getElementById("weaponCost").innerText =
-next ? next.c : "MAX"
+let next=weapons[weaponLevel+1]
 
-}
-
-function openTab(id){
-
-document.querySelectorAll(".tab").forEach(t=>t.style.display="none")
-
-document.getElementById(id).style.display="block"
+document.getElementById("weaponCost").innerText=
+next?next.c:"MAX"
 
 }
-
-openTab("game")
 
 function loop(){
 
@@ -282,6 +319,7 @@ ctx.clearRect(0,0,canvas.width,canvas.height)
 
 drawPhone()
 drawWeak()
+drawParticles()
 drawUI()
 
 requestAnimationFrame(loop)
