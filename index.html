@@ -3,27 +3,27 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Mobile Arena</title>
+
+<title>Mobile Battle</title>
 
 <style>
 body{
 margin:0;
 overflow:hidden;
 touch-action:none;
-background:#1b1b1b;
+background:#111;
 }
 
 canvas{
 display:block;
-background:#2f8f4e;
 }
 
 #hpBar{
 position:absolute;
-top:15px;
-left:15px;
-width:250px;
-height:22px;
+top:10px;
+left:10px;
+width:220px;
+height:18px;
 background:#444;
 }
 
@@ -35,30 +35,32 @@ background:lime;
 
 #joystick{
 position:absolute;
-left:40px;
-bottom:40px;
-width:120px;
-height:120px;
+left:25px;
+bottom:25px;
+width:160px;
+height:160px;
 background:rgba(255,255,255,0.15);
 border-radius:50%;
 }
 
 #stick{
 position:absolute;
-left:75px;
-bottom:75px;
-width:50px;
-height:50px;
+left:85px;
+bottom:85px;
+width:70px;
+height:70px;
 background:rgba(255,255,255,0.5);
 border-radius:50%;
 }
 
-#shoot,#super{
+#shoot{
 position:absolute;
-right:40px;
-width:85px;
-height:85px;
+right:25px;
+bottom:30px;
+width:90px;
+height:90px;
 border-radius:50%;
+background:red;
 color:white;
 display:flex;
 align-items:center;
@@ -66,21 +68,26 @@ justify-content:center;
 font-weight:bold;
 }
 
-#shoot{
-bottom:50px;
-background:red;
-}
-
 #super{
-bottom:150px;
+position:absolute;
+right:35px;
+bottom:140px;
+width:70px;
+height:70px;
+border-radius:50%;
 background:blue;
+color:white;
+display:flex;
+align-items:center;
+justify-content:center;
+font-weight:bold;
 }
 </style>
 </head>
 
 <body>
 
-<canvas id="game" width="1200" height="700"></canvas>
+<canvas id="game"></canvas>
 
 <div id="hpBar"><div id="hp"></div></div>
 <div id="joystick"></div>
@@ -93,61 +100,50 @@ background:blue;
 const canvas=document.getElementById("game")
 const ctx=canvas.getContext("2d")
 
+canvas.width=window.innerWidth
+canvas.height=window.innerHeight
+
+let mapSize={w:4000,h:3000}
+
 let player={
-x:600,
-y:350,
-hp:200,
-level:1
+x:2000,
+y:1500,
+hp:200
 }
 
 let move={x:0,y:0}
 let bullets=[]
 let enemies=[]
-let enemyBullets=[]
-let superReady=true
 
-// большой мир
-let mapSize={w:3000,h:2000}
+function spawnEnemy(){
 
-let joystick=document.getElementById("joystick")
-let stick=document.getElementById("stick")
+let x=Math.random()*(mapSize.w-200)+100
+let y=Math.random()*(mapSize.h-200)+100
 
-joystick.addEventListener("touchmove",e=>{
-let t=e.touches[0]
-let rect=joystick.getBoundingClientRect()
-
-let x=t.clientX-(rect.left+60)
-let y=t.clientY-(rect.top+60)
-
-move.x=x/40
-move.y=y/40
-
+enemies.push({
+x:x,
+y:y,
+hp:60,
+cool:0
 })
 
-joystick.addEventListener("touchend",()=>{
-move.x=0
-move.y=0
-})
+}
 
-document.getElementById("shoot").addEventListener("touchstart",shoot)
+setInterval(spawnEnemy,2000)
 
-document.getElementById("super").addEventListener("touchstart",superAttack)
-
-function shoot(){
+document.getElementById("shoot").addEventListener("touchstart",()=>{
 
 bullets.push({
 x:player.x,
 y:player.y,
 vx:10,
 vy:0,
-damage:15+player.level*2
+damage:15
 })
 
-}
+})
 
-function superAttack(){
-
-if(!superReady) return
+document.getElementById("super").addEventListener("touchstart",()=>{
 
 for(let i=0;i<20;i++){
 bullets.push({
@@ -159,27 +155,43 @@ damage:25
 })
 }
 
-superReady=false
-setTimeout(()=>superReady=true,6000)
+})
 
-}
+let joystick=document.getElementById("joystick")
 
-function spawnEnemy(){
+joystick.addEventListener("touchmove",e=>{
 
-let types=["red","green","purple"]
-let type=types[Math.floor(Math.random()*3)]
+let t=e.touches[0]
+let rect=joystick.getBoundingClientRect()
 
-enemies.push({
-x:Math.random()*2800+100,
-y:Math.random()*1800+100,
-type:type,
-hp:50,
-cool:0
+let x=t.clientX-(rect.left+80)
+let y=t.clientY-(rect.top+80)
+
+move.x=x/50
+move.y=y/50
+
+})
+
+joystick.addEventListener("touchend",()=>{
+move.x=0
+move.y=0
+})
+
+function update(){
+
+player.x+=move.x
+player.y+=move.y
+
+// границы карты
+player.x=Math.max(0,Math.min(mapSize.w,player.x))
+player.y=Math.max(0,Math.min(mapSize.h,player.y))
+
+bullets.forEach(b=>{
+b.x+=b.vx
+b.y+=b.vy
 })
 
 }
-
-setInterval(spawnEnemy,2500)
 
 function enemyAI(e){
 
@@ -187,48 +199,12 @@ let dx=player.x-e.x
 let dy=player.y-e.y
 let dist=Math.sqrt(dx*dx+dy*dy)
 
-// держат дистанцию
-if(dist<300){
-e.x-=dx/dist*0.6
-e.y-=dy/dist*0.6
-}else{
-e.x+=dx/dist*0.4
-e.y+=dy/dist*0.4
-}
+if(dist<500){
+
+e.x+=dx/dist*0.6
+e.y+=dy/dist*0.6
 
 }
-
-function enemyShoot(e){
-
-if(e.type==="red" && e.cool<=0){
-
-enemyBullets.push({
-x:e.x,
-y:e.y,
-vx:(player.x-e.x)/80,
-vy:(player.y-e.y)/80,
-damage:8
-})
-
-e.cool=120
-}
-
-}
-
-function update(){
-
-player.x+=move.x
-player.y+=move.y
-
-bullets.forEach(b=>{
-b.x+=b.vx
-b.y+=b.vy
-})
-
-enemyBullets.forEach(b=>{
-b.x+=b.vx
-b.y+=b.vy
-})
 
 }
 
@@ -245,22 +221,26 @@ b.x=-999
 })
 })
 
-enemyBullets.forEach(b=>{
-let dx=b.x-player.x
-let dy=b.y-player.y
-if(Math.sqrt(dx*dx+dy*dy)<15){
-player.hp-=b.damage
-b.x=-999
-}
-})
-
 enemies=enemies.filter(e=>e.hp>0)
+
+}
+
+function camera(){
+
+ctx.setTransform(1,0,0,1,0,0)
+
+let camX=player.x-canvas.width/2
+let camY=player.y-canvas.height/2
+
+ctx.translate(-camX,-camY)
 
 }
 
 function draw(){
 
-ctx.clearRect(0,0,1200,700)
+ctx.clearRect(0,0,mapSize.w,mapSize.h)
+
+camera()
 
 ctx.fillStyle="#2f8f4e"
 ctx.fillRect(0,0,mapSize.w,mapSize.h)
@@ -273,8 +253,7 @@ ctx.fill()
 
 // враги
 enemies.forEach(e=>{
-ctx.fillStyle=e.type==="red"?"red":
-e.type==="green"?"lime":"purple"
+ctx.fillStyle="red"
 ctx.beginPath()
 ctx.arc(e.x,e.y,15,0,Math.PI*2)
 ctx.fill()
@@ -282,10 +261,9 @@ ctx.fill()
 
 // пули
 ctx.fillStyle="yellow"
-bullets.forEach(b=>ctx.fillRect(b.x,b.y,6,3))
-
-ctx.fillStyle="orange"
-enemyBullets.forEach(b=>ctx.fillRect(b.x,b.y,5,5))
+bullets.forEach(b=>{
+ctx.fillRect(b.x,b.y,6,3)
+})
 
 }
 
@@ -300,12 +278,6 @@ location.reload()
 }
 
 function loop(){
-
-enemies.forEach(e=>{
-e.cool--
-enemyAI(e)
-enemyShoot(e)
-})
 
 update()
 collision()
