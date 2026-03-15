@@ -2,13 +2,13 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Phone Destroyer</title>
+<title>Phone Breaker</title>
 
 <style>
 
 body{
 margin:0;
-background:linear-gradient(180deg,#0f0f0f,#1a1a1a);
+background:#0f0f0f;
 color:white;
 font-family:Arial;
 overflow:hidden;
@@ -16,13 +16,18 @@ overflow:hidden;
 
 #ui{
 position:absolute;
-left:120px;
+left:90px;
 top:20px;
 width:260px;
-background:#1e1e1e;
+background:#1c1c1c;
 padding:15px;
 border-radius:12px;
-box-shadow:0 0 20px #000;
+box-shadow:0 0 25px black;
+}
+
+#decor{
+font-size:24px;
+margin-bottom:10px;
 }
 
 button{
@@ -57,6 +62,8 @@ display:none;
 
 <div id="ui">
 
+<div id="decor">🔨 🪓 🔧 💣</div>
+
 <h3>Очки: <span id="points">0</span></h3>
 Оружие: <span id="weapon">Палка</span>
 
@@ -64,23 +71,20 @@ display:none;
 Улучшить оружие (<span id="weaponCost"></span>)
 </button>
 
-<br><br>
-
 <button onclick="toggleShop()">🛒 Магазин</button>
 
 <div id="shop">
 
-<h4>Бонус очков</h4>
+<h4>Бонус</h4>
 
-<button onclick="buyUpgrade(1,50)">+1 за точку (50)</button>
-<button onclick="buyUpgrade(2,120)">+2 за точку (120)</button>
-<button onclick="buyUpgrade(5,400)">+5 за точку (400)</button>
+<button onclick="buyUpgrade(1,20)">+1 за точку (20)</button>
+<button onclick="buyUpgrade(2,60)">+2 за точку (60)</button>
+<button onclick="buyUpgrade(5,150)">+5 за точку (150)</button>
 
 <h4>Автокликер</h4>
 
-<button onclick="buyAuto(1,80)">1 клик/с (80)</button>
-<button onclick="buyAuto(5,350)">5 кликов/с (350)</button>
-<button onclick="buyAuto(10,900)">10 кликов/с (900)</button>
+<button onclick="buyAuto(1,30)">1 клик/с (30)</button>
+<button onclick="buyAuto(5,120)">5 кликов/с (120)</button>
 
 </div>
 
@@ -98,19 +102,16 @@ let bonus = 1
 let auto = 0
 
 let weaponLevel = 0
+let swing = 0
 
 let weapons = [
 
-{n:"Палка",d:1,c:50},
-{n:"Камень",d:2,c:150},
-{n:"Молоток",d:3,c:300},
-{n:"Бита",d:4,c:700},
-{n:"Кувалда",d:6,c:1500},
-{n:"Дрель",d:8,c:3000},
-{n:"Пила",d:10,c:6000},
-{n:"Дробовик",d:15,c:12000},
-{n:"Ракетница",d:25,c:20000},
-{n:"Лазер",d:40,c:35000}
+{n:"Палка",d:1,c:30},
+{n:"Камень",d:2,c:80},
+{n:"Молоток",d:3,c:150},
+{n:"Бита",d:4,c:300},
+{n:"Кувалда",d:6,c:600},
+{n:"Дрель",d:8,c:1200}
 
 ]
 
@@ -121,6 +122,9 @@ let weak = spawnPoint()
 
 let particles=[]
 let cracks=[]
+
+let phoneY=0
+let trashAnim=false
 
 function spawnPoint(){
 
@@ -134,6 +138,10 @@ r:22
 
 function drawPhone(){
 
+ctx.save()
+
+ctx.translate(0,phoneY)
+
 ctx.fillStyle="#555"
 ctx.fillRect(450,120,200,320)
 
@@ -143,6 +151,7 @@ ctx.fillRect(465,140,170,260)
 cracks.forEach(c=>{
 
 ctx.strokeStyle="white"
+ctx.lineWidth=2
 
 ctx.beginPath()
 ctx.moveTo(c.x,c.y)
@@ -150,6 +159,31 @@ ctx.lineTo(c.x2,c.y2)
 ctx.stroke()
 
 })
+
+if(hits>7){
+
+drawMatrix()
+
+}
+
+ctx.restore()
+
+}
+
+function drawMatrix(){
+
+ctx.fillStyle="lime"
+
+for(let i=0;i<40;i++){
+
+ctx.fillRect(
+470+Math.random()*150,
+150+Math.random()*250,
+2,
+8
+)
+
+}
 
 }
 
@@ -163,16 +197,32 @@ ctx.fill()
 
 }
 
+function drawWeapon(){
+
+ctx.save()
+
+ctx.translate(380,300)
+
+ctx.rotate(swing)
+
+ctx.fillStyle="brown"
+
+ctx.fillRect(0,-5,80,10)
+
+ctx.restore()
+
+}
+
 function spawnGlass(x,y){
 
-for(let i=0;i<8;i++){
+for(let i=0;i<10;i++){
 
 particles.push({
 
 x:x,
 y:y,
-vx:(Math.random()-0.5)*6,
-vy:(Math.random()-0.5)*6,
+vx:(Math.random()-0.5)*8,
+vy:(Math.random()-0.5)*8,
 life:40
 
 })
@@ -222,22 +272,34 @@ points+=weapons[weaponLevel].d*bonus
 
 hits++
 
+swing=-0.7
+
 spawnGlass(x,y)
 
 cracks.push({
 x:x,
 y:y,
-x2:x+(Math.random()*40-20),
-y2:y+(Math.random()*40-20)
+x2:x+(Math.random()*80-40),
+y2:y+(Math.random()*80-40)
 })
 
 weak=spawnPoint()
 
 if(hits>=maxHits){
 
-setTimeout(resetPhone,300)
+trashAnim=true
 
 }
+
+}
+
+function drawTrash(){
+
+ctx.fillStyle="#333"
+ctx.fillRect(760,380,60,80)
+
+ctx.fillStyle="white"
+ctx.fillText("🗑",770,430)
 
 }
 
@@ -245,6 +307,8 @@ function resetPhone(){
 
 hits=0
 cracks=[]
+phoneY=0
+trashAnim=false
 weak=spawnPoint()
 
 }
@@ -317,9 +381,30 @@ function loop(){
 
 ctx.clearRect(0,0,canvas.width,canvas.height)
 
+drawTrash()
+
 drawPhone()
+
 drawWeak()
+
+drawWeapon()
+
 drawParticles()
+
+if(swing<0) swing+=0.1
+
+if(trashAnim){
+
+phoneY+=6
+
+if(phoneY>300){
+
+resetPhone()
+
+}
+
+}
+
 drawUI()
 
 requestAnimationFrame(loop)
