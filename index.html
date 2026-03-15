@@ -3,8 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-
-<title>Mobile Battle</title>
+<title>Fixed Mobile Game</title>
 
 <style>
 body{
@@ -35,18 +34,18 @@ background:lime;
 
 #joystick{
 position:absolute;
-left:25px;
-bottom:25px;
-width:160px;
-height:160px;
+left:30px;
+bottom:30px;
+width:170px;
+height:170px;
 background:rgba(255,255,255,0.15);
 border-radius:50%;
 }
 
 #stick{
 position:absolute;
-left:85px;
-bottom:85px;
+left:95px;
+bottom:95px;
 width:70px;
 height:70px;
 background:rgba(255,255,255,0.5);
@@ -55,8 +54,8 @@ border-radius:50%;
 
 #shoot{
 position:absolute;
-right:25px;
-bottom:30px;
+right:30px;
+bottom:40px;
 width:90px;
 height:90px;
 border-radius:50%;
@@ -70,10 +69,10 @@ font-weight:bold;
 
 #super{
 position:absolute;
-right:35px;
-bottom:140px;
-width:70px;
-height:70px;
+right:40px;
+bottom:150px;
+width:75px;
+height:75px;
 border-radius:50%;
 background:blue;
 color:white;
@@ -103,33 +102,82 @@ const ctx=canvas.getContext("2d")
 canvas.width=window.innerWidth
 canvas.height=window.innerHeight
 
-let mapSize={w:4000,h:3000}
+let mapSize={w:3500,h:2500}
 
 let player={
-x:2000,
-y:1500,
-hp:200
+x:1750,
+y:1250,
+hp:200,
+superCharge:0
 }
 
 let move={x:0,y:0}
 let bullets=[]
 let enemies=[]
 
+let audioCtx=new (window.AudioContext||window.webkitAudioContext)()
+
+function playBeep(freq){
+
+let osc=audioCtx.createOscillator()
+let gain=audioCtx.createGain()
+
+osc.connect(gain)
+gain.connect(audioCtx.destination)
+
+osc.frequency.value=freq
+osc.start()
+
+gain.gain.setValueAtTime(0.1,audioCtx.currentTime)
+gain.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.2)
+
+osc.stop(audioCtx.currentTime+0.2)
+
+}
+
 function spawnEnemy(){
 
-let x=Math.random()*(mapSize.w-200)+100
-let y=Math.random()*(mapSize.h-200)+100
+let isBoss=Math.random()<0.15
 
 enemies.push({
-x:x,
-y:y,
-hp:60,
+x:Math.random()*(mapSize.w-200)+100,
+y:Math.random()*(mapSize.h-200)+100,
+hp:isBoss?200:60,
+boss:isBoss,
 cool:0
 })
 
 }
 
-setInterval(spawnEnemy,2000)
+setInterval(spawnEnemy,1500)
+
+let joystick=document.getElementById("joystick")
+let stick=document.getElementById("stick")
+
+joystick.addEventListener("touchstart",e=>moveStick(e))
+joystick.addEventListener("touchmove",e=>moveStick(e))
+joystick.addEventListener("touchend",()=>{move.x=0;move.y=0;stick.style.transform="translate(0px,0px)"})
+
+function moveStick(e){
+
+let t=e.touches[0]
+let rect=joystick.getBoundingClientRect()
+
+let x=t.clientX-(rect.left+85)
+let y=t.clientY-(rect.top+85)
+
+let length=Math.sqrt(x*x+y*y)
+if(length>60){
+x=x/length*60
+y=y/length*60
+}
+
+stick.style.transform=`translate(${x}px,${y}px)`
+
+move.x=x/30
+move.y=y/30
+
+}
 
 document.getElementById("shoot").addEventListener("touchstart",()=>{
 
@@ -138,43 +186,34 @@ x:player.x,
 y:player.y,
 vx:10,
 vy:0,
-damage:15
+damage:20
 })
+
+player.superCharge++
+
+playBeep(300)
 
 })
 
 document.getElementById("super").addEventListener("touchstart",()=>{
 
-for(let i=0;i<20;i++){
+if(player.superCharge>=3){
+
+for(let i=0;i<25;i++){
 bullets.push({
 x:player.x,
 y:player.y,
-vx:Math.cos(i)*8,
-vy:Math.sin(i)*8,
-damage:25
+vx:Math.cos(i)*9,
+vy:Math.sin(i)*9,
+damage:35
 })
 }
 
-})
+player.superCharge=0
+playBeep(600)
 
-let joystick=document.getElementById("joystick")
+}
 
-joystick.addEventListener("touchmove",e=>{
-
-let t=e.touches[0]
-let rect=joystick.getBoundingClientRect()
-
-let x=t.clientX-(rect.left+80)
-let y=t.clientY-(rect.top+80)
-
-move.x=x/50
-move.y=y/50
-
-})
-
-joystick.addEventListener("touchend",()=>{
-move.x=0
-move.y=0
 })
 
 function update(){
@@ -182,7 +221,6 @@ function update(){
 player.x+=move.x
 player.y+=move.y
 
-// границы карты
 player.x=Math.max(0,Math.min(mapSize.w,player.x))
 player.y=Math.max(0,Math.min(mapSize.h,player.y))
 
@@ -199,10 +237,17 @@ let dx=player.x-e.x
 let dy=player.y-e.y
 let dist=Math.sqrt(dx*dx+dy*dy)
 
-if(dist<500){
+if(e.boss){
 
-e.x+=dx/dist*0.6
-e.y+=dy/dist*0.6
+e.x+=dx/dist*0.4
+e.y+=dy/dist*0.4
+
+}else{
+
+if(dist<600){
+e.x+=dx/dist*0.7
+e.y+=dy/dist*0.7
+}
 
 }
 
@@ -245,21 +290,18 @@ camera()
 ctx.fillStyle="#2f8f4e"
 ctx.fillRect(0,0,mapSize.w,mapSize.h)
 
-// игрок
 ctx.fillStyle="blue"
 ctx.beginPath()
 ctx.arc(player.x,player.y,18,0,Math.PI*2)
 ctx.fill()
 
-// враги
 enemies.forEach(e=>{
-ctx.fillStyle="red"
+ctx.fillStyle=e.boss?"purple":"red"
 ctx.beginPath()
-ctx.arc(e.x,e.y,15,0,Math.PI*2)
+ctx.arc(e.x,e.y,e.boss?25:15,0,Math.PI*2)
 ctx.fill()
 })
 
-// пули
 ctx.fillStyle="yellow"
 bullets.forEach(b=>{
 ctx.fillRect(b.x,b.y,6,3)
@@ -278,6 +320,11 @@ location.reload()
 }
 
 function loop(){
+
+enemies.forEach(e=>{
+e.cool--
+enemyAI(e)
+})
 
 update()
 collision()
