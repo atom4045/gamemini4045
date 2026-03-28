@@ -3,35 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Neon Clash: Toxic Combo</title>
+    <title>Neon Clash: Pigpocalypse v1.5</title>
     <style>
         body { margin: 0; background: #010105; color: white; font-family: 'Courier New', monospace; overflow: hidden; touch-action: none; }
-        canvas { display: block; background: #050510; box-shadow: 0 0 20px #0ff; }
+        canvas { display: block; background: #050510; box-shadow: 0 0 25px #f0f; }
         #ui { position: absolute; bottom: 10px; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 10px; z-index: 10; }
-        #cards { display: flex; gap: 8px; }
+        #cards { display: flex; gap: 6px; }
         .card { 
-            width: 70px; height: 95px; background: rgba(10, 10, 40, 0.9); border: 2px solid #0ff; 
+            width: 65px; height: 90px; background: rgba(10, 10, 40, 0.9); border: 2px solid #0ff; 
             border-radius: 8px; display: flex; flex-direction: column; align-items: center;
-            justify-content: space-around; font-size: 11px; cursor: pointer; transition: 0.1s;
+            justify-content: space-around; font-size: 10px; cursor: pointer; transition: 0.1s;
         }
         .card:active { transform: scale(0.9); background: rgba(0, 255, 255, 0.2); }
         .card b { font-size: 16px; color: #f0f; }
-        #elixir-bar { width: 300px; height: 12px; background: #111; border: 2px solid #fff; border-radius: 6px; overflow: hidden; }
-        #elixir-fill { height: 100%; background: linear-gradient(90deg, #f0f, #ff00ff); width: 0%; transition: 0.1s; }
-        #combo-info { position: absolute; top: 10px; left: 10px; color: #0f0; font-size: 12px; max-width: 150px; background: rgba(0,0,0,0.5); padding: 5px; }
+        .card.pig { border-color: #ff99cc; color: #ff99cc; }
+        .card.pig b { color: #ff3388; }
+
+        #elixir-bar { width: 320px; height: 14px; background: #111; border: 2px solid #fff; border-radius: 7px; overflow: hidden; position: relative;}
+        #elixir-fill { height: 100%; background: linear-gradient(90deg, #f0f, #ffccff); width: 0%; transition: 0.1s; }
+        #elixir-text { position: absolute; width: 100%; text-align: center; top: 0; font-size: 10px; color: #000; font-weight: bold;}
+        
+        #combo-info { position: absolute; top: 10px; left: 10px; color: #0f0; font-size: 11px; max-width: 150px; background: rgba(0,0,0,0.6); padding: 5px; border-radius: 4px;}
     </style>
 </head>
 <body>
 
-<div id="combo-info">КОМБО-СЧЁТЧИК:<br><span id="c-l">🏹 0/3</span> | <span id="c-r">⚔️ 0/3</span></div>
+<div id="combo-info">КОМБО ГЕРОЯ:<br><span id="c-l">🏹 0/3</span> | <span id="c-r">⚔️ 0/3</span></div>
 
 <div id="ui">
-    <div id="elixir-bar"><div id="elixir-fill"></div></div>
+    <div id="elixir-bar">
+        <div id="elixir-fill"></div>
+        <div id="elixir-text">ЭЛИКСИР: 0/10</div>
+    </div>
     <div id="cards">
         <div class="card" onclick="selectCard(0)"><b>3</b> ⚔️РЫЦАРЬ</div>
         <div class="card" onclick="selectCard(1)"><b>3</b> 🏹ЛУЧНИЦА</div>
         <div class="card" onclick="selectCard(2)"><b>5</b> 🛡️ГИГАНТ</div>
-        <div class="card" onclick="selectCard(3)"><b>4</b> 🔥ШАР</div>
+        <div class="card pig" onclick="selectCard(3)"><b>2</b> 🐷СВИНЬЯ</div>
+        <div class="card" onclick="selectCard(4)"><b>4</b> 🔥ШАР</div>
     </div>
 </div>
 
@@ -40,15 +49,23 @@
 <script>
 // --- AUDIO (BASIC SYNTH) ---
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-function playSound(f, d, t='sine', v=0.2) {
+function playSound(f, d, t='sine', v=0.2, glide=0) {
     if(audioCtx.state === 'suspended') audioCtx.resume();
-    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
-    o.type = t; o.frequency.setValueAtTime(f, audioCtx.currentTime);
-    g.gain.setValueAtTime(v, audioCtx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + d);
-    o.connect(g); g.connect(audioCtx.destination);
-    o.start(); o.stop(audioCtx.currentTime + d);
+    const o = audioCtx.createOscillator(), g = Audio.createGain();
+    o.type = t; o.frequency.setValueAtTime(f, Audio.currentTime);
+    if(glide) o.frequency.exponentialRampToValueAtTime(glide, Audio.currentTime + d);
+    g.gain.setValueAtTime(v, Audio.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.01, Audio.currentTime + d);
+    o.connect(g); g.connect(Audio.destination);
+    o.start(); o.stop(Audio.currentTime + d);
 }
+const Sound = {
+    spawn: () => playSound(400, 0.1, 'sine', 0.1),
+    hit: () => playSound(100+Math.random()*20, 0.05, 'triangle', 0.1),
+    boom: () => playSound(60, 0.4, 'sawtooth', 0.5, 20),
+    spell: () => playSound(100, 0.3, 'square', 0.3, 1000),
+    hero: () => playSound(150, 1.0, 'sawtooth', 0.4, 50)
+};
 
 // --- CANVAS SETUP ---
 const canvas = document.getElementById('arena');
@@ -60,81 +77,83 @@ const CARD_DATA = [
     { n: "Рыцарь", c: 3, hp: 800, dmg: 70, range: 40, spd: 1.4, type: 'g' },
     { n: "Лучник", c: 3, hp: 300, dmg: 45, range: 160, spd: 1.1, type: 'r' },
     { n: "Гигант", c: 5, hp: 2500, dmg: 100, range: 50, spd: 0.7, type: 't' },
+    { n: "Свинья", c: 2, hp: 150, dmg: 350, range: 30, spd: 2.5, type: 'pig', isKamikaze: true }, // НОВЫЙ ЮНИТ
     { n: "Шар", c: 4, isSpell: true, dmg: 400, r: 80 }
 ];
-const TOXIC_DATA = { n: "ТАКСИЧНЫЙ", hp: 1500, dmg: 3, range: 120, spd: 1.0, type: 'hero' };
+const TOXIC_DATA = { n: "ТАКСИЧНЫЙ", hp: 1500, dmg: 3, range: 120, spd: 1.0, type: 'hero', ability: 'poison' };
 
 // --- STATE VARIABLES ---
 let elixir = 6;
 let selectedCard = -1;
 let units = [], towers = [], spells = [], particles = [];
-let tick = 0, isEnd = false;
-
-// Комбо-система
-let comboArchers = 0, comboKnights = 0;
+let tick = 0, isEnd = false, comboArchers = 0, comboKnights = 0;
 
 // Инициализация башен
 function initTowers() {
     towers = [
-        { x: 100, y: canvas.height-120, hp: 2000, max: 2000, team: 1, r: 25 },
-        { x: 300, y: canvas.height-120, hp: 2000, max: 2000, team: 1, r: 25 },
-        { x: 200, y: canvas.height-50, hp: 3500, max: 3500, team: 1, r: 35, main: true },
-        { x: 100, y: 120, hp: 2000, max: 2000, team: 2, r: 25 },
-        { x: 300, y: 120, hp: 2000, max: 2000, team: 2, r: 25 },
-        { x: 200, y: 50, hp: 3500, max: 3500, team: 2, r: 35, main: true }
+        { x: 100, y: canvas.height-140, hp: 2000, max: 2000, team: 1, r: 25 },
+        { x: 300, y: canvas.height-140, hp: 2000, max: 2000, team: 1, r: 25 },
+        { x: 200, y: canvas.height-60, hp: 3500, max: 3500, team: 1, r: 35, main: true },
+        { x: 100, y: 140, hp: 2000, max: 2000, team: 2, r: 25 },
+        { x: 300, y: 140, hp: 2000, max: 2000, team: 2, r: 25 },
+        { x: 200, y: 60, hp: 3500, max: 3500, team: 2, r: 35, main: true }
     ];
 }
 
 function selectCard(idx) {
-    if (elixir >= CARD_DATA[idx].cost) {
+    if (elixir >= CARD_DATA[idx].c) {
         selectedCard = idx;
-        playSound(400, 0.1, 'sine', 0.1);
+        Sound.spawn();
     }
 }
 
 function spawnUnit(card, team, x, y) {
     if(card.isSpell) {
-        spells.push({ ...card, startY: -50, x, y, team, timer: 60, landTimer: 30 });
-        playSound(100, 0.3, 'square');
+        spells.push({ ...card, startY: -50, x, y, team, landTimer: 30 });
+        Sound.spell();
     } else {
-        units.push({ ...card, x, y, team, curHp: card.hp, aTick: 0, state: 'move', reload: 0 });
+        units.push({ ...card, x, y, team, curHp: card.hp, reload: 0, t: Math.random()*10 });
     }
 }
 
-// Удар Огненного Шара
-function spellDamage(x, y, data, team) {
+// Урон по области (Шар и Свинья)
+function areaDamage(x, y, r, dmg, team) {
     units.forEach(u => {
-        if(u.team !== team && Math.hypot(u.x-x, u.y-y) < data.r) u.curHp -= data.dmg;
+        if(u.team !== team && Math.hypot(u.x-x, u.y-y) < r) u.curHp -= dmg;
     });
     towers.forEach(t => {
-        if(t.team !== team && Math.hypot(t.x-x, t.y-y) < data.r) t.hp -= data.dmg;
+        if(t.team !== team && Math.hypot(t.x-x, t.y-y) < r) t.hp -= dmg;
     });
-    for(let i=0; i<30; i++) spawnParticle(x, y, '#ff0', 3, 40);
+    let color = dmg > 300 ? '#ff0' : '#ff99cc';
+    for(let i=0; i<20; i++) spawnParticle(x, y, color, 3, 30);
+    Sound.boom();
 }
 
 // ТОКСИЧНОЕ ОБЛАКО
 function toxicDamage(x, y, r, team) {
     units.forEach(u => {
         if(u.team !== team && Math.hypot(u.x-x, u.y-y) < r) {
-            u.curHp -= 4; // Огромный периодический урон
-            if(tick % 5 === 0) spawnParticle(u.x, u.y, '#0f0', 1, 20);
+            u.curHp -= 3; // Периодический урон
+            if(tick % 6 === 0) spawnParticle(u.x, u.y, '#0f0', 1, 15);
         }
     });
-    if(tick % 10 === 0) spawnParticle(x+(Math.random()-0.5)*r*1.5, y+(Math.random()-0.5)*r*1.5, '#0a0', 1, 30);
+    if(tick % 12 === 0) spawnParticle(x+(Math.random()-0.5)*r*1.4, y+(Math.random()-0.5)*r*1.4, '#0a0', 1, 25);
 }
 
 canvas.onclick = (e) => {
     if(selectedCard === -1) return;
     const data = CARD_DATA[selectedCard];
-    if (elixir < data.cost) return;
+    if (elixir < data.c) return;
 
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
-    if (y > canvas.height/2 || data.isSpell) {
+    // Зона высадки (ниже середины или спелл)
+    if (y > canvas.height/2 + 20 || data.isSpell) {
         spawnUnit(data, 1, x, y);
-        elixir -= data.cost;
+        elixir -= data.c;
+        for(let i=0; i<5; i++) spawnParticle(x, y, '#f0f', 2, 20); // Частицы траты эликсира
         updateCombo(selectedCard);
         selectedCard = -1;
     }
@@ -145,29 +164,29 @@ function updateCombo(idx) {
     if(idx === 1 && comboKnights === 0) {
         comboArchers++;
         if(comboArchers >= 3) {
-            spawnUnit(TOXIC_DATA, 1, 200, canvas.height-80);
-            comboArchers = 0;
-            playSound(150, 1.0, 'sawtooth'); // Токсичный звук
+            spawnUnit(TOXIC_DATA, 1, 200, canvas.height-100);
+            comboArchers = 0; Sound.hero();
         }
     } else if (idx === 0 && comboArchers === 0) {
         comboKnights++;
-        // Просто комбо рыцарей, пока без секретного героя
-        if(comboKnights >= 3) comboKnights = 0;
-    } else {
-        // Комбо прервано
-        comboArchers = comboKnights = 0;
-    }
+        if(comboKnights >= 3) comboKnights = 0; // Просто комбо
+    } else { comboArchers = comboKnights = 0; }
     document.getElementById('c-l').innerText = `🏹 ${comboArchers}/3`;
 }
 
 // Простой ИИ Бота
 let botElixir = 6;
 function botAI() {
-    botElixir += isEnd ? 0.005 : 0.02;
-    if(botElixir >= 7) {
-        let card = Math.random() > 0.4 ? 0 : 2; // Рыцарь или Гигант
-        spawnUnit(CARD_DATA[card], 2, 50+Math.random()*300, 80);
-        botElixir -= CARD_DATA[card].cost;
+    botElixir += isEnd ? 0.005 : 0.022; // Чуть быстрее
+    if(botElixir >= 6) {
+        let r = Math.random();
+        let card;
+        if(r > 0.7) card = 2; // Гигант
+        else if(r > 0.4) card = 0; // Рыцарь
+        else card = 3; // Свинья-камикадзе (Бот её полюбил)
+        
+        spawnUnit(CARD_DATA[card], 2, 50+Math.random()*300, 100);
+        botElixir -= CARD_DATA[card].c;
     }
 }
 
@@ -179,17 +198,17 @@ function spawnParticle(x, y, color, speed, dur) {
 function update() {
     tick++;
     if(isEnd) return;
-    elixir = Math.min(10, elixir + 0.02);
+    elixir = Math.min(10, elixir + 0.025); // Чуть быстрее эликсир
     document.getElementById('elixir-fill').style.width = (elixir*10)+'%';
+    document.getElementById('elixir-text').innerText = `ЭЛИКСИР: ${Math.floor(elixir)}/10`;
     botAI();
 
     // Спеллы
     spells.forEach((s, i) => {
-        s.startY += 10;
+        s.startY += 12;
         if(s.startY >= s.y) {
-            spellDamage(s.x, s.y, s, s.team);
+            areaDamage(s.x, s.y, s.r, s.dmg, s.team);
             spells.splice(i, 1);
-            playSound(80, 0.4, 'sawtooth', 0.5);
         }
     });
 
@@ -210,17 +229,20 @@ function update() {
                 let a = Math.atan2(closest.y - u.y, closest.x - u.x);
                 u.x += Math.cos(a) * u.spd;
                 u.y += Math.sin(a) * u.spd;
-                u.state = 'move';
             } else {
                 // Атака
-                u.state = 'attack';
                 u.reload--;
                 if(u.reload <= 0) {
-                    closest.curHp ? closest.curHp -= u.dmg : closest.hp -= u.dmg;
-                    u.reload = 60; // Частота атаки
-                    playSound(100+Math.random()*20, 0.05, 'triangle');
-                    if(u.type==='r') spawnParticle(u.x, u.y, '#fff', 2, 10);
-                    if(u.n==='ТАКСИЧНЫЙ') spawnParticle(u.x, u.y, '#0f0', 3, 20);
+                    if(u.isKamikaze) {
+                        // ВЗРЫВ СВИНЬИ
+                        areaDamage(u.x, u.y, 60, u.dmg, u.team);
+                        u.curHp = 0; // Умирает при взрыве
+                    } else {
+                        closest.curHp ? closest.curHp -= u.dmg : closest.hp -= u.dmg;
+                        u.reload = 55; // Чуть быстрее атака
+                        Sound.hit();
+                        if(u.type==='r') spawnParticle(u.x, u.y, '#fff', 1.5, 8);
+                    }
                 }
             }
         }
@@ -233,7 +255,7 @@ function update() {
 
 function endGame(winner) {
     isEnd = true;
-    alert(winner === 1 ? "ПОБЕДА!" : "ВЫ ПРОИГРАЛИ!");
+    alert(winner === 1 ? "ПОБЕДА ХАОСА!" : "ТАКСИЧНОСТЬ ПРОИГРАЛА!");
     location.reload();
 }
 
@@ -241,67 +263,71 @@ function endGame(winner) {
 function drawUnit(ctx, u) {
     ctx.save();
     ctx.translate(u.x, u.y);
-    const color = u.team === 1 ? '#0ff' : '#f00';
-    const face = u.team === 1 ? -1 : 1; // Костыль для направления
+    const color = u.team === 1 ? '#0ff' : '#f0f';
 
     if (u.ability === 'poison') {
-        // ТАКСИЧНЫЙ
-        ctx.fillStyle = '#0a0'; ctx.fillRect(-15, -15, 30, 30);
-        ctx.fillStyle = '#000'; ctx.fillRect(-5, -5, 10, 10); // Противогаз
-        if(tick % 5 === 0) ctx.fillStyle = `rgba(0, 255, 0, ${Math.random()})`;
-        ctx.beginPath(); ctx.arc(0, 0, 15, 0, 7); ctx.fill();
+        // ТАКСИЧНЫЙ (Улучшенный визуал)
+        ctx.fillStyle = '#0f0'; ctx.shadowBlur=15; ctx.shadowColor='#0f0';
+        ctx.fillRect(-15, -15, 30, 30); ctx.shadowBlur=0;
+        ctx.fillStyle = '#000'; ctx.fillRect(-6, -6, 12, 12); // Противогаз
     } 
+    else if (u.type === 'pig') {
+        // СВИНЬЯ-КАМИКАДЗЕ
+        ctx.fillStyle = '#ff99cc'; ctx.beginPath(); ctx.ellipse(0,0, 15, 12, 0, 0, 7); ctx.fill();
+        ctx.fillStyle = '#ff3388'; ctx.beginPath(); ctx.arc(10, 0, 6, 0, 7); ctx.fill(); // Пятак
+        ctx.fillStyle = '#ff0'; ctx.fillRect(-10, -18, 20, 5); // Динамит на спине
+        if(tick%10<5) {ctx.fillStyle='#f00'; ctx.beginPath(); ctx.arc(-10, -18, 3, 0, 7); ctx.fill();} // Мигает
+    }
     else if (u.type === 't') {
         // ГИГАНТ
-        let step = (tick % 40 < 20) ? -5 : 5;
+        let step = (tick % 30 < 15) ? -4 : 4;
         ctx.fillStyle = color; ctx.fillRect(-20, -30 + step, 40, 50);
-        ctx.fillStyle = '#ff0'; ctx.fillRect(-10, -40 + step, 20, 15); // Голова
+        ctx.fillStyle = '#ff0'; ctx.fillRect(-12, -42 + step, 24, 18); // Голова
     }
     else if (u.type === 'g') {
         // РЫЦАРЬ
-        ctx.fillStyle = color; ctx.beginPath(); ctx.arc(0, -10, 15, 0, 7); ctx.fill();
-        // Замах мечом
-        ctx.strokeStyle = '#fff'; ctx.lineWidth = 4;
-        ctx.beginPath();
-        let angle = u.state === 'attack' ? Math.sin(tick*0.2)*Math.PI/2 : Math.PI/2;
-        ctx.moveTo(0, -10); ctx.lineTo(Math.cos(angle)*30, Math.sin(angle)*30*face);
-        ctx.stroke();
+        ctx.fillStyle = color; ctx.beginPath(); ctx.arc(0, -10, 16, 0, 7); ctx.fill();
+        // Меч
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 4; ctx.beginPath();
+        let angle = u.reload > 40 ? -Math.PI/2 : Math.PI/2;
+        ctx.moveTo(0, -10); ctx.lineTo(Math.cos(angle)*35, Math.sin(angle)*35); ctx.stroke();
     }
     else if (u.type === 'r') {
         // ЛУЧНИЦА
-        ctx.fillStyle = color; ctx.beginPath(); ctx.arc(0, 0, 10, 0, 7); ctx.fill();
-        // Лук и тетива
-        ctx.strokeStyle = '#f0f'; ctx.lineWidth = 2;
-        let pull = u.state === 'attack' ? Math.sin(tick*0.1)*10 : 0;
-        ctx.beginPath(); ctx.arc(-10+pull, 0, 15, -1, 1); ctx.stroke();
-        ctx.strokeStyle = '#fff'; ctx.beginPath(); ctx.moveTo(-10+pull, -15); ctx.lineTo(-10, 0); ctx.lineTo(-10+pull, 15); ctx.stroke();
+        ctx.fillStyle = color; ctx.beginPath(); ctx.arc(0, 0, 11, 0, 7); ctx.fill();
+        // Лук
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
+        let pull = u.reload > 40 ? 5 : 0;
+        ctx.beginPath(); ctx.arc(-8+pull, 0, 16, -1, 1); ctx.stroke();
     }
 
     // HP bar юнита
-    ctx.fillStyle = "#f00"; ctx.fillRect(-15, -35, 30, 4);
-    ctx.fillStyle = "#0f0"; ctx.fillRect(-15, -35, (u.curHp/u.hp)*30, 4);
+    if(u.curHp > 0 && !u.isKamikaze) {
+        ctx.fillStyle = "#f00"; ctx.fillRect(-15, -38, 30, 4);
+        ctx.fillStyle = "#0f0"; ctx.fillRect(-15, -38, (u.curHp/u.hp)*30, 4);
+    }
     ctx.restore();
 }
 
 function draw() {
-    ctx.fillStyle = '#050510'; ctx.fillRect(0,0,400,canvas.height);
+    ctx.fillStyle = '#020208'; ctx.fillRect(0,0,400,canvas.height);
     
     // Река и мосты
-    ctx.fillStyle = '#03032a'; ctx.fillRect(0, canvas.height/2-20, 400, 40);
-    ctx.fillStyle = '#222'; ctx.fillRect(50, canvas.height/2-30, 80, 60); ctx.fillRect(270, canvas.height/2-30, 80, 60);
+    ctx.fillStyle = '#050520'; ctx.fillRect(0, canvas.height/2-25, 400, 50);
+    ctx.fillStyle = '#222'; ctx.fillRect(50, canvas.height/2-35, 80, 70); ctx.fillRect(270, canvas.height/2-35, 80, 70);
 
     // Башни
     towers.forEach(t => {
-        ctx.fillStyle = t.team === 1 ? '#0ff' : '#f00';
-        ctx.beginPath(); ctx.arc(t.x, t.y, t.r, 0, 7); ctx.fill();
-        ctx.fillStyle = "#fff"; ctx.fillRect(t.x-20, t.y-t.r-10, 40, 5);
-        ctx.fillStyle = "#f0f"; ctx.fillRect(t.x-20, t.y-t.r-10, (t.hp/t.max)*40, 5);
+        ctx.fillStyle = t.team === 1 ? '#0ff' : '#f0f'; ctx.shadowBlur=20; ctx.shadowColor=ctx.fillStyle;
+        ctx.beginPath(); ctx.arc(t.x, t.y, t.r, 0, 7); ctx.fill(); ctx.shadowBlur=0;
+        ctx.fillStyle = "#fff"; ctx.fillRect(t.x-20, t.y-t.r-12, 40, 6);
+        ctx.fillStyle = t.team === 1 ? '#0ff' : '#f0f'; ctx.fillRect(t.x-20, t.y-t.r-12, (t.hp/t.max)*40, 6);
     });
 
     // Огненные шары
     spells.forEach(s => {
-        ctx.fillStyle = '#f20'; ctx.beginPath(); ctx.arc(s.x, s.startY, 20, 0, 7); ctx.fill();
-        ctx.fillStyle = '#ff0'; ctx.beginPath(); ctx.arc(s.x, s.startY, 10, 0, 7); ctx.fill();
+        ctx.fillStyle = '#f30'; ctx.beginPath(); ctx.arc(s.x, s.startY, 22, 0, 7); ctx.fill();
+        ctx.fillStyle = '#ff0'; ctx.beginPath(); ctx.arc(s.x, s.startY, 12, 0, 7); ctx.fill();
         if(tick%2===0) spawnParticle(s.x, s.startY, '#ff0', 1, 10);
     });
 
