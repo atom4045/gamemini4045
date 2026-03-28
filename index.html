@@ -3,245 +3,204 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Кибер-Эволюция: Мама Кирилла</title>
+    <title>Neon Clash Royale</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #05000a; font-family: 'Segoe UI', Tahoma, sans-serif; touch-action: manipulation; color: #fff; }
-        canvas { display: block; }
-        #ui {
-            position: absolute; top: 20px; left: 20px;
-            background: rgba(15, 0, 30, 0.9); padding: 15px; border: 2px solid #ff00ff;
-            border-radius: 10px; pointer-events: none; z-index: 10; box-shadow: 0 0 20px #f0f;
+        body { margin: 0; background: #050510; color: white; font-family: sans-serif; overflow: hidden; touch-action: none; }
+        #game-ui { position: absolute; bottom: 20px; width: 100%; display: flex; justify-content: center; gap: 10px; z-index: 10; }
+        .card { 
+            width: 70px; height: 100px; background: #1a1a3a; border: 2px solid #0ff; 
+            border-radius: 8px; display: flex; flex-direction: column; align-items: center;
+            justify-content: space-around; font-size: 10px; cursor: pointer; transition: 0.2s;
         }
-        #stage-info { font-size: 1.4em; font-weight: bold; color: #0ff; text-transform: uppercase; }
-        #xp-container { width: 250px; height: 15px; background: #222; border: 1px solid #0ff; margin-top: 10px; border-radius: 20px; overflow: hidden; }
-        #xp-fill { height: 100%; background: linear-gradient(90deg, #0ff, #f0f); width: 0%; transition: width 0.2s; }
-        
-        #controls {
-            position: absolute; bottom: 30px; width: 100%;
-            display: flex; justify-content: space-between; padding: 0 40px; box-sizing: border-box; z-index: 10;
+        .card:active { transform: scale(0.9); }
+        .card b { font-size: 12px; color: #f0f; }
+        #elixir-bar { 
+            position: absolute; bottom: 130px; left: 50%; transform: translateX(-50%);
+            width: 200px; height: 15px; background: #222; border: 2px solid #fff; border-radius: 10px;
         }
-        .btn {
-            width: 90px; height: 90px; background: rgba(0, 255, 255, 0.1);
-            border: 4px solid #0ff; border-radius: 50%; display: flex;
-            align-items: center; justify-content: center; color: #0ff;
-            font-size: 35px; font-weight: bold; user-select: none; transition: 0.1s;
-        }
-        .btn:active { background: rgba(0, 255, 255, 0.5); transform: scale(0.9); }
-        #btnFly { border-color: #f0f; color: #f0f; box-shadow: 0 0 15px #f0f; }
-
-        #screamer {
-            display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: #000; z-index: 9999; justify-content: center; align-items: center; flex-direction: column;
-        }
-        #scary-img { font-size: 500px; animation: shake 0.05s infinite; filter: drop-shadow(0 0 50px red); }
-        @keyframes shake { 0% { transform: translate(5px,5px); } 50% { transform: translate(-5px,-5px); } 100% { transform: translate(0,0); } }
+        #elixir-fill { height: 100%; background: #f0f; width: 0%; transition: 0.1s; }
+        #info { position: absolute; top: 10px; width: 100%; text-align: center; color: #0ff; font-weight: bold; }
+        canvas { display: block; margin: 0 auto; background: #0a0a20; }
     </style>
 </head>
 <body>
 
-<div id="ui">
-    <div id="stage-info">ЗАГРУЗКА ХАОСА...</div>
-    <div id="evo-name" style="color: #f0f; font-size: 1.1em;"></div>
-    <div id="xp-container"><div id="xp-fill"></div></div>
-    <div id="stats" style="margin-top: 5px; font-size: 0.9em;">СЧЁТ: 0</div>
+<div id="info">НЕОНОВАЯ АРЕНА: ИГРОК VS БОТ</div>
+<div id="elixir-bar"><div id="elixir-fill"></div></div>
+
+<div id="game-ui">
+    <div class="card" onclick="selectCard(0)"><b>3</b> ⚔️<span>РЫЦАРЬ</span></div>
+    <div class="card" onclick="selectCard(1)"><b>3</b> 🏹<span>ЛУЧНИК</span></div>
+    <div class="card" onclick="selectCard(2)"><b>5</b> 🛡️<span>ГИГАНТ</span></div>
+    <div class="card" onclick="selectCard(3)"><b>4</b> 🔥<span>ШАР</span></div>
 </div>
 
-<canvas id="gameCanvas"></canvas>
-
-<div id="controls">
-    <div style="display: flex; gap: 20px;">
-        <div class="btn" id="btnLeft">←</div>
-        <div class="btn" id="btnRight">→</div>
-    </div>
-    <div class="btn" id="btnFly">ВЗЛЁТ</div>
-</div>
-
-<div id="screamer">
-    <div id="scary-img">🐷</div>
-    <h1 style="color: red; font-size: 5em; text-shadow: 0 0 30px red;">ХРЮЮЮЮЮЮЮЮ!!!</h1>
-</div>
+<canvas id="arena"></canvas>
 
 <script>
-const Audio = new (window.AudioContext || window.webkitAudioContext)();
-const Sound = {
-    play: (f, d, t, v=0.3) => {
-        if(Audio.state === 'suspended') Audio.resume();
-        const o = Audio.createOscillator(), g = Audio.createGain();
-        o.type = t; o.frequency.setValueAtTime(f, Audio.currentTime);
-        g.gain.setValueAtTime(v, Audio.currentTime);
-        g.gain.exponentialRampToValueAtTime(0.01, Audio.currentTime + d);
-        o.connect(g); g.connect(Audio.destination);
-        o.start(); o.stop(Audio.currentTime + d);
-    },
-    snort: () => Sound.play(120 + Math.random()*60, 0.3, 'sawtooth', 0.5),
-    eat: () => Sound.play(800, 0.1, 'sine', 0.2),
-    boom: () => Sound.play(60, 1.5, 'square', 0.8)
-};
-
-const canvas = document.getElementById('gameCanvas');
+const canvas = document.getElementById('arena');
 const ctx = canvas.getContext('2d');
-const world = { w: 6000, h: 3000 };
-let player = { x: 500, y: 500, vx: 0, vy: 0, level: 0, xp: 0, face: 1 };
-let obstacles = [], food = [], tick = 0, isEnd = false, endTimer = 0;
+canvas.width = 400;
+canvas.height = 600;
 
-const evolutions = [
-    { n: "Микро-Бит", xp: 30, s: 20, f: 5, m: 1, d: (x,y,r) => {
-        ctx.fillStyle = '#0ff'; ctx.beginPath(); ctx.arc(x,y,r,0,7); ctx.fill();
-        ctx.strokeStyle='#fff'; ctx.strokeRect(x-r, y-2, r*2, 4);
-    }},
-    { n: "Нео-Скат", xp: 100, s: 35, f: 5.5, m: 3, d: (x,y,r) => {
-        ctx.fillStyle = '#22f'; ctx.beginPath(); ctx.moveTo(x-r*1.5, y); 
-        ctx.quadraticCurveTo(x, y-r+Math.sin(tick*0.1)*10, x+r*1.5, y); ctx.fill();
-    }},
-    { n: "Кибер-Глаз", xp: 250, s: 45, f: 6, m: 6, d: (x,y,r) => {
-        ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(x,y,r,0,7); ctx.fill();
-        ctx.fillStyle='#000'; ctx.beginPath(); ctx.arc(x+r*0.5, y, 10, 0, 7); ctx.fill();
-    }},
-    { n: "Плазма-Феникс", xp: 500, s: 60, f: 7, m: 10, d: (x,y,r) => {
-        ctx.fillStyle='#f60'; // Крылья
-        ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x-r, y-r-Math.sin(tick*0.2)*20); ctx.lineTo(x-r/2, y); ctx.fill();
-        ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x+r, y-r-Math.sin(tick*0.2)*20); ctx.lineTo(x+r/2, y); ctx.fill();
-        ctx.fillStyle='#ff0'; ctx.beginPath(); ctx.ellipse(x,y,r, r/2, 0,0,7); ctx.fill();
-    }},
-    { n: "Меха-Дракон", xp: 1000, s: 80, f: 7.5, m: 20, d: (x,y,r) => {
-        ctx.fillStyle='#0a0'; ctx.fillRect(x-r, y-r/4, r*2, r/2); // Тело
-        ctx.fillStyle='#0f0'; ctx.beginPath(); ctx.moveTo(x+r, y); ctx.lineTo(x+r*1.5, y-r/2); ctx.lineTo(x+r*1.2, y+r/2); ctx.fill(); // Голова
-    }},
-    { n: "Титан Пустоты", xp: 2000, s: 100, f: 8, m: 40, d: (x,y,r) => {
-        ctx.fillStyle='#303'; ctx.shadowBlur=20; ctx.shadowColor='#f0f';
-        ctx.fillRect(x-r, y-r, r*2, r*2); ctx.shadowBlur=0;
-    }},
-    { n: "Сингулярность", xp: 4000, s: 120, f: 8.5, m: 80, d: (x,y,r) => {
-        let g = ctx.createRadialGradient(x,y,0,x,y,r);
-        g.addColorStop(0,'#fff'); g.addColorStop(1,'#000');
-        ctx.fillStyle=g; ctx.beginPath(); ctx.arc(x,y,r,0,7); ctx.fill();
-    }},
-    { n: "Бог Машин", xp: 7000, s: 140, f: 9, m: 150, d: (x,y,r) => {
-        ctx.strokeStyle='#0ff'; ctx.lineWidth=5; ctx.strokeRect(x-r, y-r, r*2, r*2);
-        ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(x,y,r/2,0,7); ctx.fill();
-    }},
-    { n: "Предвестник", xp: 12000, s: 160, f: 9.5, m: 300, d: (x,y,r) => {
-        ctx.fillStyle='#100'; ctx.beginPath(); ctx.moveTo(x, y-r); ctx.lineTo(x+r, y+r); ctx.lineTo(x-r, y+r); ctx.fill();
-        ctx.fillStyle='red'; ctx.beginPath(); ctx.arc(x,y,20,0,7); ctx.fill();
-    }},
-    { n: "УЛЬТРА МАМА КИРИЛЛА", xp: 999999, s: 220, f: 11, m: 1000, d: (x,y,r) => {
-        ctx.fillStyle='#ff99cc'; ctx.beginPath(); ctx.ellipse(x,y,r*1.2, r, 0,0,7); ctx.fill(); // Тело
-        ctx.fillStyle='#ff66aa'; ctx.beginPath(); ctx.arc(x+r*0.7, y-r*0.3, r*0.5, 0, 7); ctx.fill(); // Голова
-        ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(x+r*0.9, y-r*0.4, 15, 0, 7); ctx.fill(); // Глаз
-        ctx.fillStyle='#000'; ctx.beginPath(); ctx.arc(x+r*1.0, y-r*0.4, 7, 0, 7); ctx.fill(); // Зрачок
-        ctx.fillStyle='#ff3388'; ctx.beginPath(); ctx.ellipse(x+r*1.1, y-r*0.1, 30, 20, 0,0,7); ctx.fill(); // Пятак
-    }}
+let elixir = 5;
+let selectedTrack = -1;
+let units = [];
+let towers = [];
+let particles = [];
+
+const CARD_DATA = [
+    { name: "Рыцарь", cost: 3, hp: 600, dmg: 50, range: 30, spd: 1.2, type: 'ground' },
+    { name: "Лучник", cost: 3, hp: 250, dmg: 40, range: 150, spd: 1.0, type: 'range' },
+    { name: "Гигант", cost: 5, hp: 2000, dmg: 80, range: 40, spd: 0.6, type: 'tank' },
+    { name: "Шар", cost: 4, dmg: 300, isSpell: true }
 ];
 
-function init() {
-    obstacles = [];
-    for(let i=0; i<40; i++) {
-        obstacles.push({ x: 800+i*500, w: 200+Math.random()*200, h: 500+Math.random()*1500, c: '#0ff' });
-    }
-    for(let i=0; i<150; i++) spawnFood();
-    resize();
-    requestAnimationFrame(loop);
+// Инициализация башен
+function initTowers() {
+    towers = [
+        // Игрок (синие)
+        { x: 100, y: 500, hp: 1500, maxHp: 1500, team: 1, r: 25 },
+        { x: 300, y: 500, hp: 1500, maxHp: 1500, team: 1, r: 25 },
+        { x: 200, y: 560, hp: 2500, maxHp: 2500, team: 1, r: 35, main: true },
+        // Бот (красные)
+        { x: 100, y: 100, hp: 1500, maxHp: 1500, team: 2, r: 25 },
+        { x: 300, y: 100, hp: 1500, maxHp: 1500, team: 2, r: 25 },
+        { x: 200, y: 40, hp: 2500, maxHp: 2500, team: 2, r: 35, main: true }
+    ];
 }
 
-function spawnFood() {
-    food.push({ x: Math.random()*world.w, y: Math.random()*(world.h-500), s: 10+Math.random()*10, c: `hsl(${Math.random()*360},100%,50%)` });
+function spawnUnit(cardIdx, team, x, y) {
+    const data = CARD_DATA[cardIdx];
+    if (data.isSpell) {
+        units.push({ ...data, x, y, team, timer: 30 });
+        // Урон по области
+        units.forEach(u => {
+            if (u.team !== team && Math.hypot(u.x - x, u.y - y) < 80) u.hp -= data.dmg;
+        });
+        towers.forEach(t => {
+            if (t.team !== team && Math.hypot(t.x - x, t.y - y) < 80) t.hp -= data.dmg;
+        });
+        return;
+    }
+    units.push({
+        ...data, x, y, team,
+        curHp: data.hp,
+        target: null,
+        state: 'move'
+    });
 }
 
-function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
-window.addEventListener('resize', resize);
-
-const keys = {};
-function handleFly() {
-    if(player.level === 9) {
-        isEnd = true; Sound.boom();
-        setTimeout(() => {
-            document.getElementById('screamer').style.display = 'flex';
-            setInterval(Sound.snort, 150);
-        }, 3000);
+function selectCard(idx) {
+    if (elixir >= CARD_DATA[idx].cost) {
+        selectedCard = idx;
     }
-    player.vy = -evolutions[player.level].f; Sound.play(200, 0.1, 'square');
 }
 
-document.getElementById('btnFly').onclick = handleFly;
-document.getElementById('btnLeft').ontouchstart = () => keys.L=true;
-document.getElementById('btnLeft').ontouchend = () => keys.L=false;
-document.getElementById('btnRight').ontouchstart = () => keys.R=true;
-document.getElementById('btnRight').ontouchend = () => keys.R=false;
-window.onkeydown = (e) => { if(e.code==='Space') handleFly(); keys[e.code]=true; };
-window.onkeyup = (e) => keys[e.code]=false;
-
-function loop() {
-    if(document.getElementById('screamer').style.display === 'flex') return;
-    tick++;
-    let e = evolutions[player.level];
-
-    if(keys.ArrowLeft || keys.L) { player.vx -= 0.7; player.face = -1; }
-    if(keys.ArrowRight || keys.R) { player.vx += 0.7; player.face = 1; }
-    player.vx *= 0.95; player.vy += 0.25;
-    player.x += player.vx; player.y += player.vy;
-
-    if(isEnd) {
-        player.vx = 0; player.vy = 0;
-        food.forEach(f => { f.x += (player.x - f.x)*0.1; f.y += (player.y - f.y)*0.1; });
-    }
-
-    // Коллизии
-    obstacles = obstacles.filter(o => {
-        let hit = player.x+e.s > o.x && player.x-e.s < o.x+o.w && player.y+e.s > world.h-o.h;
-        if(hit) {
-            if(player.level === 9) { if(tick%10===0) Sound.snort(); return false; }
-            if(player.y < world.h-o.h+50) { player.y = world.h-o.h-e.s; player.vy = 0; }
-            else { player.vx *= -1.2; player.x += player.vx; }
+canvas.onclick = (e) => {
+    if (selectedCard !== -1) {
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        
+        if (y > 300 || CARD_DATA[selectedCard].isSpell) {
+            spawnUnit(selectedCard, 1, x, y);
+            elixir -= CARD_DATA[selectedCard].cost;
+            selectedCard = -1;
         }
-        return true;
+    }
+};
+
+// Простой ИИ Бота
+let botElixir = 5;
+function botAI() {
+    botElixir += 0.01;
+    if (botElixir >= 5) {
+        const strategy = Math.random();
+        const spawnX = 50 + Math.random() * 300;
+        if (strategy > 0.6) spawnUnit(2, 2, spawnX, 50); // Гигант
+        else if (strategy > 0.3) spawnUnit(0, 2, spawnX, 50); // Рыцарь
+        else spawnUnit(1, 2, spawnX, 50); // Лучник
+        botElixir -= 3.5;
+    }
+}
+
+function update() {
+    elixir = Math.min(10, elixir + 0.015);
+    document.getElementById('elixir-fill').style.width = (elixir * 10) + '%';
+    botAI();
+
+    units.forEach((u, i) => {
+        if (u.isSpell) { u.timer--; if(u.timer <= 0) units.splice(i, 1); return; }
+
+        // Поиск цели (башня или юнит)
+        let targets = [...towers, ...units].filter(t => t.team !== u.team && t.curHp !== 0 && !t.isSpell);
+        let closest = null;
+        let minDist = Infinity;
+
+        targets.forEach(t => {
+            let d = Math.hypot(u.x - t.x, u.y - t.y);
+            if (d < minDist) { minDist = d; closest = t; }
+        });
+
+        if (closest) {
+            if (minDist > u.range) {
+                let angle = Math.atan2(closest.y - u.y, closest.x - u.x);
+                u.x += Math.cos(angle) * u.spd;
+                u.y += Math.sin(angle) * u.spd;
+            } else {
+                // Атака
+                if (tick % 60 === 0) {
+                    closest.curHp ? closest.curHp -= u.dmg : closest.hp -= u.dmg;
+                }
+            }
+        }
     });
 
-    if(player.y > world.h-e.s) { player.y = world.h-e.s; player.vy = 0; }
-    if(player.x < 0) player.x = 0; if(player.x > world.w) player.x = world.w;
-
-    // Еда
-    food = food.filter(f => {
-        if(Math.hypot(player.x-f.x, player.y-f.y) < e.s + 20) {
-            player.xp += e.m * 5; Sound.eat(); spawnFood(); return false;
-        }
-        return true;
-    });
-
-    if(player.level < 9 && player.xp >= e.xp) { player.level++; player.xp = 0; Sound.play(400, 0.5, 'sawtooth'); }
-
-    draw();
-    requestAnimationFrame(loop);
+    units = units.filter(u => u.isSpell || u.curHp > 0);
+    towers = towers.filter(t => t.hp > 0);
+    
+    if (!towers.find(t => t.main && t.team === 1)) alert("ВЫ ПРОИГРАЛИ!");
+    if (!towers.find(t => t.main && t.team === 2)) alert("ПОБЕДА!");
 }
 
+let tick = 0;
 function draw() {
-    ctx.fillStyle = '#05000a'; ctx.fillRect(0,0,canvas.width,canvas.height);
-    let camX = player.x - canvas.width/2 + (isEnd ? (Math.random()-0.5)*20 : 0);
-    let camY = player.y - canvas.height/2 + (isEnd ? (Math.random()-0.5)*20 : 0);
-    ctx.save(); ctx.translate(-camX, -camY);
+    tick++;
+    ctx.fillStyle = '#0a0a20'; ctx.fillRect(0,0,400,600);
+    
+    // Река и мосты
+    ctx.fillStyle = '#111144'; ctx.fillRect(0, 280, 400, 40);
+    ctx.fillStyle = '#333'; ctx.fillRect(60, 270, 60, 60); ctx.fillRect(280, 270, 60, 60);
 
-    obstacles.forEach(o => {
-        ctx.fillStyle = '#111'; ctx.fillRect(o.x, world.h-o.h, o.w, o.h);
-        ctx.strokeStyle = '#0ff'; ctx.lineWidth = 3; ctx.strokeRect(o.x, world.h-o.h, o.w, o.h);
+    // Башни
+    towers.forEach(t => {
+        ctx.fillStyle = t.team === 1 ? '#0ff' : '#f00';
+        ctx.beginPath(); ctx.arc(t.x, t.y, t.r, 0, 7); ctx.fill();
+        ctx.fillStyle = "#fff"; ctx.fillRect(t.x - 20, t.y - t.r - 10, 40, 5);
+        ctx.fillStyle = "#f0f"; ctx.fillRect(t.x - 20, t.y - t.r - 10, (t.hp/t.maxHp)*40, 5);
     });
 
-    food.forEach(f => {
-        ctx.fillStyle = f.c; ctx.shadowBlur=10; ctx.shadowColor=f.c;
-        ctx.fillRect(f.x, f.y, f.s, f.s); ctx.shadowBlur=0;
+    // Юниты
+    units.forEach(u => {
+        if (u.isSpell) {
+            ctx.fillStyle = 'rgba(255,100,0,0.5)';
+            ctx.beginPath(); ctx.arc(u.x, u.y, 80, 0, 7); ctx.fill();
+            return;
+        }
+        ctx.fillStyle = u.team === 1 ? '#0af' : '#f55';
+        ctx.beginPath(); ctx.arc(u.x, u.y, 10 + (u.type==='tank'?10:0), 0, 7); ctx.fill();
+        // HP бар юнита
+        ctx.fillStyle = "#f00"; ctx.fillRect(u.x-10, u.y-15, 20, 3);
+        ctx.fillStyle = "#0f0"; ctx.fillRect(u.x-10, u.y-15, (u.curHp/u.hp)*20, 3);
     });
 
-    ctx.save();
-    if(player.face === -1) { ctx.translate(player.x*2, 0); ctx.scale(-1, 1); }
-    evolutions[player.level].d(player.x, player.y, evolutions[player.level].s);
-    ctx.restore();
-
-    ctx.restore();
-
-    document.getElementById('stage-info').innerText = `СТАДИЯ: ${player.level + 1}`;
-    document.getElementById('evo-name').innerText = evolutions[player.level].n;
-    document.getElementById('xp-fill').style.width = Math.min(100, (player.xp/evolutions[player.level].xp*100)) + '%';
-    document.getElementById('stats').innerText = `МАССА ХАОСА: ${player.xp}`;
+    update();
+    requestAnimationFrame(draw);
 }
-init();
+
+initTowers();
+draw();
 </script>
 </body>
 </html>
