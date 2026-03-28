@@ -3,19 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Clash Neon: Mega Update</title>
+    <title>Neon Clash: Mega & Hound Update</title>
     <style>
-        body { margin: 0; background: #02020a; color: white; font-family: sans-serif; overflow: hidden; touch-action: none; }
-        canvas { display: block; background: #050510; }
-        #ui { position: absolute; bottom: 10px; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 5px; z-index: 10; }
-        #cards { display: flex; gap: 5px; flex-wrap: wrap; justify-content: center; }
+        body { margin: 0; background: #020205; color: white; font-family: sans-serif; overflow: hidden; touch-action: none; }
+        canvas { display: block; margin: 0 auto; background: #050515; border: 2px solid #333; }
+        #ui { position: absolute; bottom: 10px; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+        #cards { display: flex; gap: 5px; }
         .card { 
-            width: 60px; height: 85px; background: #1a1a3a; border: 2px solid #0ff; 
-            border-radius: 6px; display: flex; flex-direction: column; align-items: center;
-            justify-content: center; font-size: 9px; cursor: pointer; text-align: center;
+            width: 65px; height: 90px; background: #111133; border: 2px solid #0ff; 
+            border-radius: 8px; display: flex; flex-direction: column; align-items: center;
+            justify-content: center; font-size: 10px; cursor: pointer;
         }
-        .card b { font-size: 14px; color: #f0f; display: block; }
-        #elixir-bar { width: 300px; height: 12px; background: #111; border: 1px solid #fff; border-radius: 6px; overflow: hidden; }
+        .card b { font-size: 16px; color: #f0f; }
+        #elixir-bar { width: 300px; height: 12px; background: #111; border: 1px solid #fff; border-radius: 6px; overflow: hidden; position: relative; }
         #elixir-fill { height: 100%; background: #f0f; width: 0%; transition: 0.1s; }
     </style>
 </head>
@@ -25,10 +25,9 @@
     <div id="elixir-bar"><div id="elixir-fill"></div></div>
     <div id="cards">
         <div class="card" onclick="selectCard(0)"><b>3</b> ⚔️РЫЦАРЬ</div>
-        <div class="card" onclick="selectCard(1)"><b>3</b> 🏹ЛУЧНИЦА</div>
-        <div class="card" onclick="selectCard(2)"><b>6</b> 🌑МЕГА</div>
-        <div class="card" onclick="selectCard(3)"><b>7</b> 🦇ГОНЧА</div>
-        <div class="card" onclick="selectCard(4)"><b>2</b> 🐷СВИНЬЯ</div>
+        <div class="card" onclick="selectCard(1)"><b>3</b> 🏹ЛУЧНИК</div>
+        <div class="card" onclick="selectCard(2)"><b>7</b> 🌑МЕГА</div>
+        <div class="card" onclick="selectCard(3)"><b>7</b> 🔥ГОНЧА</div>
     </div>
 </div>
 
@@ -39,69 +38,74 @@ const canvas = document.getElementById('arena');
 const ctx = canvas.getContext('2d');
 canvas.width = 400; canvas.height = window.innerHeight;
 
-let elixir = 6;
-let selectedCard = -1;
+let elixir = 5, botElixir = 5, selectedCard = -1, tick = 0;
 let units = [], towers = [], projectiles = [], particles = [];
-let tick = 0;
 
-const CARD_DATA = [
+const DATA = [
     { n: "Рыцарь", c: 3, hp: 800, dmg: 70, range: 40, spd: 1.2, type: 'g' },
-    { n: "Лучник", c: 3, hp: 300, dmg: 40, range: 160, spd: 1.0, type: 'r' },
-    { n: "Меганайт", c: 6, hp: 3200, dmg: 120, range: 50, spd: 0.8, type: 'm' },
-    { n: "Гонча", c: 7, hp: 2000, dmg: 60, range: 40, spd: 0.6, type: 'h', flying: true },
-    { n: "Свинья", c: 2, hp: 200, dmg: 300, range: 30, spd: 1.6, type: 'p', kamikaze: true }
+    { n: "Лучник", c: 3, hp: 350, dmg: 45, range: 160, spd: 1.0, type: 'r' },
+    { n: "Меганайт", c: 7, hp: 3000, dmg: 150, range: 45, spd: 0.8, type: 'm', jumpReady: true },
+    { n: "Гонча", c: 7, hp: 1800, dmg: 50, range: 140, spd: 0.5, type: 'h', flying: true }
 ];
 
 function initTowers() {
     towers = [
-        { x: 100, y: canvas.height-150, hp: 2000, m: 2000, team: 1, r: 25, reload: 0 },
-        { x: 300, y: canvas.height-150, hp: 2000, m: 2000, team: 1, r: 25, reload: 0 },
+        { x: 100, y: canvas.height-140, hp: 2000, m: 2000, team: 1, r: 25, reload: 0 },
+        { x: 300, y: canvas.height-140, hp: 2000, m: 2000, team: 1, r: 25, reload: 0 },
         { x: 200, y: canvas.height-60, hp: 4000, m: 4000, team: 1, r: 35, main: true, reload: 0 },
-        { x: 100, y: 150, hp: 2000, m: 2000, team: 2, r: 25, reload: 0 },
-        { x: 300, y: 150, hp: 2000, m: 2000, team: 2, r: 25, reload: 0 },
+        { x: 100, y: 140, hp: 2000, m: 2000, team: 2, r: 25, reload: 0 },
+        { x: 300, y: 140, hp: 2000, m: 2000, team: 2, r: 25, reload: 0 },
         { x: 200, y: 60, hp: 4000, m: 4000, team: 2, r: 35, main: true, reload: 0 }
     ];
 }
 
-function selectCard(idx) { if(elixir >= CARD_DATA[idx].c) selectedCard = idx; }
+function spawn(idx, team, x, y) {
+    const d = DATA[idx];
+    units.push({...d, x, y, curHp: d.hp, team, reload: 0, jumpTimer: 0, state: 'normal'});
+}
+
+function selectCard(idx) { if(elixir >= DATA[idx].c) selectedCard = idx; }
 
 canvas.onclick = (e) => {
     if(selectedCard === -1) return;
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    if(y > canvas.height/2 || CARD_DATA[selectedCard].flying) {
-        units.push({...CARD_DATA[selectedCard], x, y, curHp: CARD_DATA[selectedCard].hp, team: 1, reload: 0});
-        elixir -= CARD_DATA[selectedCard].c;
+    if(y > canvas.height/2 || DATA[selectedCard].flying) {
+        spawn(selectedCard, 1, x, y);
+        elixir -= DATA[selectedCard].c;
         selectedCard = -1;
     }
 };
 
 function update() {
     tick++;
-    elixir = Math.min(10, elixir + 0.02);
+    elixir = Math.min(10, elixir + 0.015);
+    botElixir += 0.015;
     document.getElementById('elixir-fill').style.width = (elixir*10)+'%';
+
+    // Бот спавнит юнитов
+    if(botElixir >= 7) {
+        let type = Math.floor(Math.random() * 4);
+        spawn(type, 2, 50 + Math.random()*300, 100);
+        botElixir -= DATA[type].c;
+    }
 
     // Башни стреляют
     towers.forEach(t => {
         t.reload--;
         if(t.reload <= 0) {
-            let targets = units.filter(u => u.team !== t.team);
-            for(let u of targets) {
-                let d = Math.hypot(t.x-u.x, t.y-u.y);
-                if(d < 250) {
-                    projectiles.push({x: t.x, y: t.y, tx: u.x, ty: u.y, timer: 10, team: t.team});
-                    u.curHp -= 15;
-                    t.reload = 40;
-                    break;
-                }
+            let enemy = units.find(u => u.team !== t.team && Math.hypot(t.x-u.x, t.y-u.y) < 250);
+            if(enemy) {
+                projectiles.push({x: t.x, y: t.y, tx: enemy.x, ty: enemy.y, timer: 5, team: t.team});
+                enemy.curHp -= 20; t.reload = 40;
             }
         }
     });
 
-    // Юниты
-    units.forEach(u => {
-        let targets = (u.type === 'h') ? towers.filter(t => t.team !== u.team) : [...towers, ...units].filter(x => x.team !== u.team && x.hp > 0);
+    // Логика юнитов
+    units.forEach((u, i) => {
+        let targets = [...towers, ...units].filter(x => x.team !== u.team && (x.hp > 0 || x.curHp > 0));
         let closest = null, minDist = Infinity;
         targets.forEach(t => {
             let d = Math.hypot(u.x-t.x, u.y-t.y);
@@ -109,15 +113,42 @@ function update() {
         });
 
         if(closest) {
-            if(minDist > u.range) {
+            let dist = Math.hypot(u.x-closest.x, u.y-closest.y);
+            
+            // Спец-механика Меганайта (Прыжок)
+            if(u.type === 'm' && dist > 100 && dist < 250 && u.jumpReady && u.state === 'normal') {
+                u.state = 'jumping'; u.jumpTimer = 30; u.jumpReady = false;
+                u.jx = closest.x; u.jy = closest.y;
+            }
+
+            if(u.state === 'jumping') {
+                u.x += (u.jx - u.x) * 0.1; u.y += (u.jy - u.y) * 0.1;
+                u.jumpTimer--;
+                if(u.jumpTimer <= 0) { 
+                    u.state = 'normal'; 
+                    areaDamage(u.x, u.y, 80, 200, u.team); // Урон от приземления
+                }
+            } else if(dist > u.range) {
                 let a = Math.atan2(closest.y-u.y, closest.x-u.x);
                 u.x += Math.cos(a)*u.spd; u.y += Math.sin(a)*u.spd;
             } else {
                 u.reload--;
                 if(u.reload <= 0) {
-                    if(u.kamikaze) { closest.curHp ? closest.curHp -= u.dmg : closest.hp -= u.dmg; u.curHp = 0; }
-                    else { closest.curHp ? closest.curHp -= u.dmg : closest.hp -= u.dmg; u.reload = 60; }
+                    if(u.type === 'h') { // Гонча стреляет шаром
+                        projectiles.push({x: u.x, y: u.y, tx: closest.x, ty: closest.y, timer: 8, team: u.team, isFire: true});
+                        closest.curHp ? closest.curHp -= u.dmg : closest.hp -= u.dmg;
+                    } else {
+                        closest.curHp ? closest.curHp -= u.dmg : closest.hp -= u.dmg;
+                    }
+                    u.reload = 60;
                 }
+            }
+        }
+
+        // Смерть Гончей -> Щенки
+        if(u.curHp <= 0 && u.type === 'h') {
+            for(let j=0; j<6; j++) {
+                units.push({n: "Щенок", curHp: 100, hp: 100, x: u.x+(Math.random()-0.5)*40, y: u.y+(Math.random()-0.5)*40, team: u.team, spd: 1.5, dmg: 15, range: 30, type: 'pup', reload: 0});
             }
         }
     });
@@ -127,38 +158,60 @@ function update() {
     projectiles = projectiles.filter(p => p.timer-- > 0);
 }
 
+function areaDamage(x, y, r, d, team) {
+    units.forEach(u => { if(u.team !== team && Math.hypot(u.x-x, u.y-y) < r) u.curHp -= d; });
+    towers.forEach(t => { if(t.team !== team && Math.hypot(t.x-x, t.y-y) < r) t.hp -= d; });
+}
+
 function draw() {
     ctx.fillStyle = '#050510'; ctx.fillRect(0,0,400,canvas.height);
     
-    // Рисуем башни с пушками
+    // Река
+    ctx.fillStyle = '#114'; ctx.fillRect(0, canvas.height/2-20, 400, 40);
+
     towers.forEach(t => {
         ctx.fillStyle = t.team === 1 ? '#0ff' : '#f0f';
         ctx.beginPath(); ctx.arc(t.x, t.y, t.r, 0, 7); ctx.fill();
-        ctx.fillStyle = '#fff'; ctx.fillRect(t.x-5, t.y-t.r-5, 10, 10); // Пушка
-        ctx.fillStyle = 'red'; ctx.fillRect(t.x-20, t.y-t.r-15, (t.hp/t.m)*40, 4);
+        ctx.fillStyle = '#555'; ctx.fillRect(t.x-8, t.y-8, 16, 16); // Пушка
     });
 
-    // Юниты
     units.forEach(u => {
-        ctx.fillStyle = u.team === 1 ? '#0af' : '#f55';
-        if(u.type === 'm') ctx.fillRect(u.x-20, u.y-20, 40, 40); // Меганайт
-        else if(u.type === 'h') { ctx.beginPath(); ctx.arc(u.x, u.y, 18, 0, 7); ctx.fill(); ctx.fillStyle='#f60'; ctx.fill(); } // Гонча
-        else { ctx.beginPath(); ctx.arc(u.x, u.y, 12, 0, 7); ctx.fill(); }
-        ctx.fillStyle='lime'; ctx.fillRect(u.x-10, u.y-25, (u.curHp/u.hp)*20, 3);
+        ctx.save(); ctx.translate(u.x, u.y);
+        let col = u.team === 1 ? '#0af' : '#f55'; ctx.fillStyle = col;
+        
+        if(u.type === 'm') { // Меганайт
+            ctx.fillRect(-18, -18, 36, 36);
+            ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(-15, 0, 10, 0, 7); ctx.fill(); // Левая бита
+            ctx.beginPath(); ctx.arc(15, 0, 10, 0, 7); ctx.fill(); // Правая бита
+        } else if(u.type === 'h') { // Гонча
+            ctx.beginPath(); ctx.arc(0, 0, 20, 0, 7); ctx.fill();
+            ctx.fillStyle = '#f60'; ctx.beginPath(); ctx.arc(0, 0, 12, 0, 7); ctx.fill();
+        } else if(u.type === 'g') { // Рыцарь
+            ctx.beginPath(); ctx.arc(0, 0, 14, 0, 7); ctx.fill();
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(20, -10); ctx.stroke(); // Меч
+        } else if(u.type === 'r') { // Лучник
+            ctx.beginPath(); ctx.arc(0, 0, 11, 0, 7); ctx.fill();
+            ctx.strokeStyle = '#f0f'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(-5, 0, 12, -1, 1); ctx.stroke(); // Лук
+        } else { // Щенки
+            ctx.beginPath(); ctx.arc(0, 0, 6, 0, 7); ctx.fill();
+        }
+        
+        ctx.fillStyle='red'; ctx.fillRect(-15, -25, 30, 3);
+        ctx.fillStyle='lime'; ctx.fillRect(-15, -25, (u.curHp/u.hp)*30, 3);
+        ctx.restore();
     });
 
-    // Выстрелы башен
     projectiles.forEach(p => {
-        ctx.strokeStyle = p.team === 1 ? '#0ff' : '#f0f';
-        ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.tx, p.ty); ctx.stroke();
+        ctx.fillStyle = p.isFire ? '#f60' : (p.team === 1 ? '#0ff' : '#f0f');
+        ctx.beginPath(); ctx.arc(p.tx, p.ty, p.isFire ? 8 : 4, 0, 7); ctx.fill();
+        ctx.strokeStyle = ctx.fillStyle; ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.tx, p.ty); ctx.stroke();
     });
 
     update();
     requestAnimationFrame(draw);
 }
 
-initTowers();
-draw();
+initTowers(); draw();
 </script>
 </body>
 </html>
