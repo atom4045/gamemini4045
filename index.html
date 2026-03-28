@@ -1,1 +1,237 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Hatamal Evolution</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: #1a1a1a;
+            font-family: Arial, sans-serif;
+            touch-action: manipulation;
+        }
+        #gameCanvas {
+            display: block;
+            background: #222;
+            border: 2px solid #444;
+        }
+        /* Интерфейс */
+        #ui {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            pointer-events: none;
+            text-shadow: 2px 2px 2px black;
+        }
+        /* Мобильное управление */
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 30px;
+            box-sizing: border-box;
+        }
+        .btn {
+            width: 70px;
+            height: 70px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 30px;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .btn:active { background: rgba(255, 255, 255, 0.4); }
+        .side-btns { display: flex; gap: 20px; }
+    </style>
+</head>
+<body>
+
+<div id="ui">
+    <div id="stats">Эволюция: 1 | Опыт: 0/10</div>
+</div>
+
+<canvas id="gameCanvas"></canvas>
+
+<div id="controls">
+    <div class="side-btns">
+        <div class="btn" id="btnLeft">←</div>
+        <div class="btn" id="btnRight">→</div>
+    </div>
+    <div class="btn" id="btnJump">↑</div>
+</div>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+// Настройка размера экрана
+function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resize);
+resize();
+
+// Параметры мира
+const world = { width: 1200, height: 800 };
+const gravity = 0.6;
+
+// Данные эволюций (Цвет, Радиус, Скорость, Нужный опыт)
+const evolutions = [
+    { name: "Микроб", color: "#4CAF50", radius: 15, speed: 5, jump: 12, req: 10 },
+    { name: "Личинка", color: "#FFEB3B", radius: 25, speed: 4.5, jump: 13, req: 25 },
+    { name: "Жук", color: "#FF9800", radius: 35, speed: 4, jump: 14, req: 50 },
+    { name: "Хищник", color: "#F44336", radius: 45, speed: 3.5, jump: 15, req: 100 },
+    { name: "Титан", color: "#9C27B0", radius: 60, speed: 3, jump: 16, req: Infinity }
+];
+
+// Игрок
+const player = {
+    x: 100,
+    y: 100,
+    vx: 0,
+    vy: 0,
+    level: 0,
+    xp: 0,
+    grounded: false
+};
+
+// Еда
+let food = [];
+function spawnFood() {
+    if (food.length < 30) {
+        food.push({
+            x: Math.random() * world.width,
+            y: Math.random() * (world.height - 100),
+            size: 5,
+            color: `hsl(${Math.random() * 360}, 70%, 50%)`
+        });
+    }
+}
+
+// Управление
+const keys = {};
+const touch = { left: false, right: false, jump: false };
+
+// Слушатели кнопок (мобильные)
+document.getElementById('btnLeft').ontouchstart = () => touch.left = true;
+document.getElementById('btnLeft').ontouchend = () => touch.left = false;
+document.getElementById('btnRight').ontouchstart = () => touch.right = true;
+document.getElementById('btnRight').ontouchend = () => touch.right = false;
+document.getElementById('btnJump').ontouchstart = () => touch.jump = true;
+document.getElementById('btnJump').ontouchend = () => touch.jump = false;
+
+// Слушатели клавиатуры (ПК)
+window.onkeydown = (e) => keys[e.code] = true;
+window.onkeyup = (e) => keys[e.code] = false;
+
+function update() {
+    const evo = evolutions[player.level];
+
+    // Движение
+    if (keys['ArrowLeft'] || touch.left) player.vx = -evo.speed;
+    else if (keys['ArrowRight'] || touch.right) player.vx = evo.speed;
+    else player.vx *= 0.8;
+
+    if ((keys['ArrowUp'] || keys['Space'] || touch.jump) && player.grounded) {
+        player.vy = -evo.jump;
+        player.grounded = false;
+    }
+
+    // Физика
+    player.vy += gravity;
+    player.x += player.vx;
+    player.y += player.vy;
+
+    // Границы карты и пол
+    if (player.x < evo.radius) player.x = evo.radius;
+    if (player.x > world.width - evo.radius) player.x = world.width - evo.radius;
+    
+    if (player.y > world.height - evo.radius) {
+        player.y = world.height - evo.radius;
+        player.vy = 0;
+        player.grounded = true;
+    }
+
+    // Поедание еды
+    food = food.filter(f => {
+        const dist = Math.hypot(player.x - f.x, player.y - f.y);
+        if (dist < evo.radius + f.size) {
+            player.xp++;
+            return false;
+        }
+        return true;
+    });
+
+    // Система эволюции
+    if (player.xp >= evo.req && player.level < evolutions.length - 1) {
+        player.level++;
+        player.xp = 0;
+    }
+
+    spawnFood();
+    draw();
+    requestAnimationFrame(update);
+}
+
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Камера (следует за игроком)
+    const camX = Math.max(0, Math.min(player.x - canvas.width / 2, world.width - canvas.width));
+    const camY = Math.max(0, Math.min(player.y - canvas.height / 2, world.height - canvas.height));
+
+    ctx.save();
+    ctx.translate(-camX, -camY);
+
+    // Рисуем границы мира
+    ctx.strokeStyle = "#555";
+    ctx.lineWidth = 5;
+    ctx.strokeRect(0, 0, world.width, world.height);
+
+    // Рисуем еду
+    food.forEach(f => {
+        ctx.fillStyle = f.color;
+        ctx.beginPath();
+        ctx.arc(f.x, f.y, f.size, 0, Math.PI * 2);
+        ctx.fill();
+    });
+
+    // Рисуем игрока
+    const evo = evolutions[player.level];
+    ctx.fillStyle = evo.color;
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = evo.color;
+    ctx.beginPath();
+    ctx.arc(player.x, player.y, evo.radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // Глаза
+    ctx.fillStyle = "white";
+    ctx.beginPath();
+    ctx.arc(player.x + (player.vx >= 0 ? 5 : -15), player.y - 5, 5, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+
+    // Обновление UI
+    document.getElementById('stats').innerText = 
+        `Существо: ${evo.name} | Опыт: ${player.xp}/${evo.req === Infinity ? 'MAX' : evo.req}`;
+}
+
+update();
+</script>
+</body>
+</html>
 
