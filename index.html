@@ -3,37 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hatamal: Mama Kirilla Edition</title>
+    <title>Hatamal: Neon Evolved</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #2a1b3d; font-family: 'Arial', sans-serif; touch-action: manipulation; }
+        body { margin: 0; overflow: hidden; background: #010105; font-family: 'Consolas', monospace; touch-action: manipulation; }
         canvas { display: block; }
         #ui {
             position: absolute; top: 15px; left: 15px; color: #fff;
-            background: rgba(255, 0, 255, 0.3); padding: 10px; border: 2px solid #fff;
-            border-radius: 12px; pointer-events: none; backdrop-filter: blur(5px);
+            background: rgba(10, 10, 20, 0.8); padding: 15px; border: 2px solid #0ff;
+            border-radius: 8px; pointer-events: none; backdrop-filter: blur(4px);
+            box-shadow: 0 0 15px #0ff;
         }
+        #stage-name { font-size: 1.3em; font-weight: bold; color: #0ff; text-transform: uppercase; }
+        #xp-bar-container { width: 200px; height: 10px; background: #111; border: 1px solid #fff; margin-top: 5px; overflow: hidden; }
+        #xp-bar-fill { height: 100%; background: lime; width: 0%; transition: width 0.1s; }
+        
         #controls {
             position: absolute; bottom: 30px; width: 100%;
             display: flex; justify-content: space-between; padding: 0 40px; box-sizing: border-box;
         }
         .btn {
-            width: 80px; height: 80px; background: rgba(255, 255, 255, 0.2);
-            border: 3px solid #fff; border-radius: 50%; display: flex;
-            align-items: center; justify-content: center; color: #fff;
-            font-size: 35px; font-weight: bold; user-select: none;
+            width: 80px; height: 80px; background: rgba(0, 255, 255, 0.1);
+            border: 3px solid #0ff; border-radius: 50%; display: flex;
+            align-items: center; justify-content: center; color: #0ff;
+            font-size: 30px; font-weight: bold; user-select: none; box-shadow: 0 0 10px #0ff;
         }
-        .btn:active { background: rgba(255, 255, 255, 0.6); }
+        .btn:active { background: rgba(0, 255, 255, 0.4); transform: scale(0.95); }
         #screamer {
             display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: black; z-index: 9999; justify-content: center; align-items: center;
+            background: black; z-index: 9999; justify-content: center; align-items: center; flex-direction: column;
         }
     </style>
 </head>
 <body>
 
 <div id="ui">
-    <div id="stage" style="font-weight: bold;">EVO: 1 - МИКРО-ДРОН</div>
-    <div id="xp">МАССА: 0 / 20</div>
+    <div id="stage-name">СТАДИЯ: 1</div>
+    <div style="font-size: 0.9em; color: #f0f;">Существо: <span id="evo-name"></span></div>
+    <div id="xp-text" style="font-size: 0.8em; margin-top: 5px;"></div>
+    <div id="xp-bar-container"><div id="xp-bar-fill"></div></div>
 </div>
 
 <canvas id="gameCanvas"></canvas>
@@ -43,12 +50,13 @@
         <div class="btn" id="btnLeft">←</div>
         <div class="btn" id="btnRight">→</div>
     </div>
-    <div class="btn" id="btnFly" style="background: #ff4dff; border-color: #fff;">FLY</div>
+    <div class="btn" id="btnFly" style="background: rgba(255, 0, 255, 0.1); border-color: #f0f; box-shadow: 0 0 10px #f0f; color: #f0f;">FLY</div>
 </div>
 
 <div id="screamer">
-    <div style="color: red; font-size: 500px; transform: scale(2);">🐷</div>
-    <h1 style="color: white; position: absolute; bottom: 50px;">МАМА КИРИЛЛА НАШЛА ТЕБЯ!</h1>
+    <div style="font-size: 300px;">🐷</div>
+    <h1 style="color: red; font-size: 3em; text-align: center; text-shadow: 0 0 20px red;">МАМА КИРИЛЛА НАШЛА ТЕБЯ!</h1>
+    <p style="color: white;">Игра сломана.</p>
 </div>
 
 <script>
@@ -60,64 +68,141 @@ function resize() { canvas.width = window.innerWidth; canvas.height = window.inn
 window.addEventListener('resize', resize);
 resize();
 
-const world = { width: 4000, height: 2000 };
-const gravity = 0.18;
-const friction = 0.96;
+// --- ПАРАМЕТРЫ МИРА ---
+const world = { width: 5000, height: 2500 };
+const gravity = 0.22;
+const friction = 0.97;
 
+// --- НЕОНОВЫЙ ГОРОД И ОБЛАКА ---
 let obstacles = [];
-for(let i=0; i<25; i++) {
-    obstacles.push({
-        x: 500 + i * 400 + Math.random()*200,
-        y: world.height - (300 + Math.random()*500),
-        w: 100 + Math.random()*150,
-        h: 1000,
-        color: `hsl(${280 + Math.random()*40}, 50%, 40%)`
-    });
-}
+let clouds = [];
 
+function generateMap() {
+    obstacles = [];
+    clouds = [];
+    // Облака
+    for(let i=0; i<30; i++) {
+        clouds.push({
+            x: Math.random() * world.width,
+            y: Math.random() * (world.height * 0.6),
+            w: 200 + Math.random() * 300,
+            h: 60 + Math.random() * 100,
+            spd: 0.2 + Math.random() * 0.5,
+            color: `hsla(${280 + Math.random()*40}, 50%, 30%, 0.3)`
+        });
+    }
+    // Здания (Неоновые башни)
+    for(let i=0; i<35; i++) {
+        obstacles.push({
+            x: 600 + i * 400 + (Math.random()-0.5)*200,
+            y: world.height - (400 + Math.random()*800),
+            w: 120 + Math.random()*180,
+            h: 1500,
+            color: '#050510',
+            neon: Math.random() > 0.5 ? '#0ff' : '#f0f',
+            sign: Math.random() > 0.7 ? (Math.random()>0.5 ? 'RAM' : 'N30N') : null
+        });
+    }
+}
+generateMap();
+
+// --- СУЩЕСТВА (КОНКРЕТНЫЕ ФОРМЫ) ---
 const evolutions = [
-    { name: "МИКРО-ДРОН", xp: 20, s: 15, spd: 0.4, fly: 4.5, draw: (x,y,r,t) => {
-        ctx.fillStyle = '#0ff'; ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
-        ctx.strokeStyle='#fff'; ctx.strokeRect(x-r, y-2, r*2, 4);
+    { name: "Core-Дрон", xp: 15, s: 18, fly: 4.8, scoreMult: 1, draw: (x,y,r,t) => {
+        // Механический глаз
+        let g = ctx.createRadialGradient(x,y,0,x,y,r);
+        g.addColorStop(0,'#fff'); g.addColorStop(0.3,'#0ff'); g.addColorStop(1,'#055');
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+        ctx.strokeStyle='#fff'; ctx.lineWidth=2; ctx.strokeRect(x-r-2, y-2, (r+2)*2, 4);
     }},
-    { name: "НЕО-ЖУК", xp: 50, s: 25, spd: 0.5, fly: 4.8, draw: (x,y,r,t) => {
-        ctx.fillStyle = '#f0f'; ctx.beginPath(); ctx.ellipse(x,y,r*1.2, r, Math.sin(t*0.1)*0.2, 0, Math.PI*2); ctx.fill();
+    { name: "Плазмо-Жук", xp: 35, s: 28, fly: 5.2, scoreMult: 2, draw: (x,y,r,t) => {
+        // Жук с мигающим хвостом
+        ctx.fillStyle = '#f0f'; ctx.beginPath(); ctx.ellipse(x, y, r*1.3, r, 0, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = Math.sin(t*0.2)>0 ? '#fff' : '#404'; ctx.beginPath(); ctx.arc(x-r, y, 8, 0, Math.PI*2); ctx.fill(); // Хвост
+        ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(x+r*0.5, y-5, 5, 0, Math.PI*2); ctx.arc(x+r*0.5, y+5, 5, 0, Math.PI*2); ctx.fill(); // Глаза
     }},
-    { name: "ПЛАЗМЕННЫЙ СКАТ", xp: 100, s: 35, spd: 0.6, fly: 5.2, draw: (x,y,r,t) => {
-        ctx.fillStyle = '#44f'; ctx.beginPath(); ctx.moveTo(x-r*1.5, y); ctx.quadraticCurveTo(x, y-r, x+r*1.5, y); ctx.fill();
+    { name: "Void-Скат", xp: 70, s: 40, fly: 5.6, scoreMult: 3, draw: (x,y,r,t) => {
+        // Плоский скат, машет краями
+        let wave = Math.sin(t*0.1)*10;
+        ctx.fillStyle = '#226'; ctx.beginPath(); ctx.moveTo(x-r*1.8, y);
+        ctx.quadraticCurveTo(x, y-r+wave, x+r*1.8, y);
+        ctx.quadraticCurveTo(x, y+r-wave, x-r*1.8, y); ctx.fill();
+        ctx.fillStyle='#0ff'; ctx.beginPath(); ctx.arc(x+r, y, 6, 0, Math.PI*2); ctx.fill();
     }},
-    { name: "КИБЕР-ГЛАЗ", xp: 200, s: 45, spd: 0.7, fly: 5.5, draw: (x,y,r,t) => {
-        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
-        ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(x+Math.cos(t*0.1)*10, y, 15, 0, Math.PI*2); ctx.fill();
+    { name: "Кибер-Феникс", xp: 120, s: 50, fly: 6.0, scoreMult: 4, draw: (x,y,r,t) => {
+        // Птица с угловатыми крыльями
+        ctx.fillStyle = '#ff0'; ctx.beginPath(); ctx.moveTo(x,y-r); ctx.lineTo(x+r, y); ctx.lineTo(x, y+r*0.5); ctx.lineTo(x-r, y); ctx.fill(); // Тело
+        let wing = Math.sin(t*0.2)*r;
+        ctx.fillStyle = '#f60'; ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x-r/2, y-r-wing); ctx.lineTo(x-r*1.5, y-wing); ctx.closePath(); ctx.fill(); // Крыло Л
+        ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x+r/2, y-r-wing); ctx.lineTo(x+r*1.5, y-wing); ctx.closePath(); ctx.fill(); // Крыло П
     }},
-    { name: "ЗОЛОТОЙ ФЕНИКС", xp: 350, s: 55, spd: 0.8, fly: 6.0, draw: (x,y,r,t) => {
-        ctx.fillStyle = '#ff0'; ctx.beginPath(); ctx.moveTo(x-r, y); ctx.lineTo(x, y-r*1.2); ctx.lineTo(x+r, y); ctx.fill();
+    { name: "Нейро-Охотник", xp: 200, s: 65, fly: 6.4, scoreMult: 5, draw: (x,y,r,t) => {
+        // Спрут с щупальцами
+        ctx.fillStyle = '#f00'; ctx.beginPath(); ctx.arc(x,y,r,Math.PI, 0); ctx.fill(); // Голова
+        ctx.strokeStyle='#f00'; ctx.lineWidth=5;
+        for(let i=0; i<3; i++) {
+            ctx.beginPath(); ctx.moveTo(x-r+i*r, y);
+            ctx.lineTo(x-r+i*r + Math.sin(t*0.1+i)*15, y+r+10); ctx.stroke();
+        }
+        ctx.fillStyle='white'; ctx.beginPath(); ctx.arc(x, y-10, 15, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle='black'; ctx.beginPath(); ctx.arc(x+Math.cos(t*0.1)*5, y-10, 7, 0, Math.PI*2); ctx.fill();
     }},
-    { name: "МЕХА-ТИГР", xp: 500, s: 65, spd: 0.9, fly: 6.5, draw: (x,y,r,t) => {
-        ctx.fillStyle = '#f60'; ctx.fillRect(x-r, y-r/2, r*2, r); ctx.fillStyle='#000'; ctx.fillRect(x+r-10, y-r/2, 10, 10);
+    { name: "Титан Кроноса", xp: 300, s: 80, fly: 6.8, scoreMult: 6, draw: (x,y,r,t) => {
+        // Каменный голем со свечением
+        ctx.fillStyle = '#333'; ctx.shadowBlur=15; ctx.shadowColor='#f0f'; ctx.fillRect(x-r, y-r, r*2, r*2);
+        ctx.fillStyle='#f0f'; ctx.fillRect(x-r+10, y-r+10, r-20, r-20);
+        ctx.fillRect(x+10, y+10, r-20, r-20); ctx.shadowBlur=0;
     }},
-    { name: "ДЕМОН БЕЗДНЫ", xp: 700, s: 80, spd: 1.0, fly: 7.0, draw: (x,y,r,t) => {
-        ctx.fillStyle = '#202'; ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill(); ctx.strokeStyle='red'; ctx.stroke();
+    { name: "Демон Сети", xp: 450, s: 95, fly: 7.2, scoreMult: 8, draw: (x,y,r,t) => {
+        // Рогатый шар с аурой
+        ctx.fillStyle = '#000'; ctx.strokeStyle='#0ff'; ctx.lineWidth=4;
+        ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill(); ctx.stroke();
+        // Рога
+        ctx.beginPath(); ctx.moveTo(x-r*0.5, y-r+10); ctx.lineTo(x-r, y-r-20); ctx.lineTo(x-r*0.2, y-r*0.8); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(x+r*0.5, y-r+10); ctx.lineTo(x+r, y-r-20); ctx.lineTo(x+r*0.2, y-r*0.8); ctx.fill();
     }},
-    { name: "ТИТАН-ГРОД", xp: 1000, s: 100, spd: 1.1, fly: 7.5, draw: (x,y,r,t) => {
-        ctx.fillStyle = '#fff'; ctx.shadowBlur=20; ctx.shadowColor='#0ff'; ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill(); ctx.shadowBlur=0;
+    { name: "Аватар Света", xp: 600, s: 110, fly: 7.8, scoreMult: 10, draw: (x,y,r,t) => {
+        // Чистая энергия, пульсирует
+        let s = r + Math.sin(t*0.1)*10;
+        let g = ctx.createRadialGradient(x,y,0,x,y,s);
+        g.addColorStop(0,'#fff'); g.addColorStop(0.4,'#fff'); g.addColorStop(1,'rgba(0,255,255,0)');
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x,y,s,0,Math.PI*2); ctx.fill();
     }},
-    { name: "МАМА КИРИЛЛА", xp: 5000, s: 150, spd: 1.3, fly: 8.5, draw: (x,y,r,t) => {
-        // Огромная свинья
-        ctx.fillStyle = '#ff99cc';
-        ctx.beginPath(); ctx.ellipse(x, y, r*1.2, r, 0, 0, Math.PI*2); ctx.fill(); // Тело
-        ctx.fillStyle = '#ff66aa'; ctx.beginPath(); ctx.arc(x+r*0.8, y, r*0.4, 0, Math.PI*2); ctx.fill(); // Голова
-        ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(x+r*1.1, y-10, 8, 0, Math.PI*2); ctx.fill(); // Глаз
-        ctx.fillStyle = '#ff3388'; ctx.beginPath(); ctx.ellipse(x+r*1.2, y+10, 20, 15, 0, 0, Math.PI*2); ctx.fill(); // Пятачок
+    { name: "МАМА КИРИЛЛА", xp: 99999, s: 160, fly: 8.5, scoreMult: 20, draw: (x,y,r,t) => {
+        // Легендарная свинья
+        ctx.fillStyle = '#ff99cc'; ctx.beginPath(); ctx.ellipse(x,y,r*1.2, r,0,0,Math.PI*2); ctx.fill(); // Тело
+        ctx.fillStyle = '#ff66aa'; ctx.beginPath(); ctx.arc(x+r*0.7, y-r*0.2, r*0.5, 0, Math.PI*2); ctx.fill(); // Голова
+        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(x+r*0.9, y-r*0.3, 12, 0, Math.PI*2); ctx.fill(); // Глаз
+        ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(x+r*0.95, y-r*0.3, 5, 0, Math.PI*2); ctx.fill(); 
+        ctx.fillStyle = '#ff3388'; ctx.beginPath(); ctx.ellipse(x+r*1.1, y-r*0.1, 25, 18, 0, 0, Math.PI*2); ctx.fill(); // Пятачок
     }}
 ];
 
-const player = { x: 200, y: 500, vx: 0, vy: 0, level: 0, xp: 0, face: 1 };
+// --- ИГРОК ---
+const player = { x: 300, y: 300, vx: 0, vy: 0, level: 0, xp: 0, face: 1 };
 let food = [];
-const spawn = (type) => food.push({ x: Math.random()*world.width, y: Math.random()*(world.height-100), type, t: Math.random()*10 });
 
-for(let i=0; i<100; i++) spawn(i%10===0 ? 'big' : 'small');
-setInterval(() => spawn('rare'), 5000);
+function isInsideBuilding(x, y, padding) {
+    for(let o of obstacles) {
+        if(x > o.x-padding && x < o.x+o.w+padding && y > o.y-padding) return true;
+    }
+    return false;
+}
+
+const spawnFood = (type) => {
+    let fx, fy, safe=false;
+    let attempts = 0;
+    while(!safe && attempts < 50) {
+        fx = Math.random() * world.width;
+        fy = 100 + Math.random() * (world.height - 200);
+        if(!isInsideBuilding(fx, fy, 30)) safe = true; // Проверка на здания
+        attempts++;
+    }
+    food.push({ x: fx, y: fy, type, t: Math.random()*10 });
+}
+
+for(let i=0; i<120; i++) spawnFood(i%15===0 ? 'big' : 'small');
+setInterval(() => spawnFood('rare'), 4000); // Чаще спавн звезд
 
 const keys = {};
 document.getElementById('btnFly').ontouchstart = (e) => { e.preventDefault(); player.vy = -evolutions[player.level].fly; };
@@ -130,80 +215,111 @@ window.onkeydown = (e) => { if(e.code==='ArrowUp' || e.code==='Space') player.vy
 window.onkeyup = (e) => keys[e.code]=false;
 
 let tick = 0;
+let bossPoints = 0;
+
 function loop() {
     tick++;
     const evo = evolutions[player.level];
     
-    if (keys.ArrowLeft || keys.Left) { player.vx -= evo.spd; player.face = -1; }
-    if (keys.ArrowRight || keys.Right) { player.vx += evo.spd; player.face = 1; }
+    // Горизонтальное движение (скорость зависит от размера)
+    let moveSpd = 0.6 + (player.level*0.05);
+    if (keys.ArrowLeft || keys.Left) { player.vx -= moveSpd; player.face = -1; }
+    if (keys.ArrowRight || keys.Right) { player.vx += moveSpd; player.face = 1; }
 
     player.vx *= friction; player.vy += gravity;
     player.x += player.vx; player.y += player.vy;
 
-    // Столкновения (Мама Кирилла ест всё!)
+    // Столкновения (Мама Кирилла ест башни)
     obstacles = obstacles.filter(o => {
         let hit = player.x+evo.s > o.x && player.x-evo.s < o.x+o.w && player.y+evo.s > o.y;
         if(hit) {
-            if(player.level === 8) return false; // Съели здание
-            if(player.y < o.y + 30) { player.y = o.y-evo.s; player.vy = 0; }
-            else { player.vx *= -1.2; player.x += player.vx; }
+            if(player.level === 8) { bossPoints += 10; return false; } // Босс съел здание!
+            if(player.y < o.y + 40) { player.y = o.y-evo.s; player.vy = 0; }
+            else { player.vx *= -1.1; player.x += player.vx; }
         }
         return true;
     });
 
     if(player.y > world.height-evo.s) { player.y = world.height-evo.s; player.vy = 0; }
+    if(player.y < evo.s) { player.y = evo.s; player.vy = 0; } // Потолок
     if(player.x < evo.s) player.x = evo.s;
     if(player.x > world.width-evo.s) player.x = world.width-evo.s;
 
+    // Поедание еды (с МНОЖИТЕЛЕМ)
     food = food.filter(f => {
-        if(Math.hypot(player.x-f.x, player.y-f.y) < evo.s + 20) {
-            player.xp += (f.type==='small'?2 : f.type==='big'?5 : 50);
-            if(f.type !== 'rare') spawn(f.type);
+        if(Math.hypot(player.x-f.x, player.y-f.y) < evo.s + 15) {
+            let base = (f.type==='small'? 1 : f.type==='big'? 3 : 25);
+            let gained = base * evo.scoreMult; // Очки зависят от эволюции
+            
+            if(player.level === 8) bossPoints += gained;
+            else player.xp += gained;
+
+            if(f.type !== 'rare') spawnFood(f.type);
             return false;
         }
         return true;
     });
 
+    // Легкая прокачка
     if(player.xp >= evo.xp && player.level < 8) { player.level++; player.xp = 0; }
     
-    // ПРОВЕРКА СКРИМЕРА
-    if(player.level === 8 && player.xp >= 1000) {
-        sc.style.display = 'flex';
-        return; 
-    }
+    // СКРИМЕР
+    if(player.level === 8 && bossPoints >= 1000) { sc.style.display = 'flex'; return; }
+
+    // Движение облаков
+    clouds.forEach(c => { c.x -= c.spd; if(c.x < -c.w) c.x = world.width; });
 
     draw();
     requestAnimationFrame(loop);
 }
 
 function draw() {
-    ctx.fillStyle = '#4a306d'; ctx.fillRect(0,0,canvas.width,canvas.height);
+    // Фон города
+    ctx.fillStyle = '#010105'; ctx.fillRect(0,0,canvas.width,canvas.height);
+    
     const cx = Math.max(0, Math.min(player.x - canvas.width/2, world.width - canvas.width));
     const cy = Math.max(0, Math.min(player.y - canvas.height/2, world.height - canvas.height));
     ctx.save(); ctx.translate(-cx, -cy);
 
-    // Дальние детали (горы/облака)
-    ctx.fillStyle = '#3d2b56';
-    for(let i=0; i<10; i++) ctx.fillRect(i*500, world.height-400, 300, 400);
-
-    // Здания
-    obstacles.forEach(o => {
-        ctx.fillStyle = o.color; ctx.fillRect(o.x, o.y, o.w, o.h);
-        ctx.strokeStyle = '#fff'; ctx.lineWidth=1; ctx.strokeRect(o.x, o.y, o.w, o.h);
-        // Окна
-        ctx.fillStyle = '#ffffaa';
-        for(let i=0; i<2; i++) ctx.fillRect(o.x+20+i*40, o.y+50, 20, 30);
+    // Облака
+    clouds.forEach(c => {
+        ctx.fillStyle = c.color; ctx.beginPath(); ctx.ellipse(c.x, c.y, c.w, c.h, 0, 0, Math.PI*2); ctx.fill();
     });
 
-    // Еда
+    // Неоновые Здания
+    obstacles.forEach(o => {
+        ctx.fillStyle = o.color; ctx.fillRect(o.x, o.y, o.w, o.h);
+        ctx.strokeStyle = o.neon; ctx.lineWidth=3;
+        ctx.shadowBlur = 10; ctx.shadowColor = o.neon;
+        ctx.strokeRect(o.x, o.y, o.w, o.h); ctx.shadowBlur=0;
+        // Детали: Окна
+        ctx.fillStyle = '#ffffaa55';
+        for(let j=0; j<4; j++) for(let i=0; i<2; i++) ctx.fillRect(o.x+20+i*60, o.y+50+j*100, 30, 40);
+        // Вывески
+        if(o.sign) {
+            ctx.fillStyle = o.neon; ctx.font = 'bold 30px Arial';
+            ctx.fillText(o.sign, o.x+10, o.y+300);
+        }
+    });
+
+    // Еда (Неоновые сферы)
     food.forEach(f => {
         ctx.save();
-        let pulse = Math.sin(tick*0.1 + f.t)*5;
+        let pulse = Math.sin(tick*0.1 + f.t)*4;
+        let r = 10 + pulse;
+        let grad = ctx.createRadialGradient(f.x, f.y, 0, f.x, f.y, r);
+        
         if(f.type==='rare') {
-            ctx.fillStyle=`hsl(${tick*5%360},100%,50%)`;
+            grad.addColorStop(0, '#fff'); grad.addColorStop(1, `hsl(${tick*10%360},100%,50%)`);
             ctx.shadowBlur=15; ctx.shadowColor='white';
-        } else ctx.fillStyle = f.type==='small' ? '#0ff' : '#ff0';
-        ctx.beginPath(); ctx.arc(f.x, f.y, 8+pulse, 0, Math.PI*2); ctx.fill();
+        } else if(f.type==='big') {
+            grad.addColorStop(0, '#fff'); grad.addColorStop(1, '#f0f');
+            ctx.shadowBlur=10; ctx.shadowColor='#f0f';
+        } else {
+            grad.addColorStop(0, '#fff'); grad.addColorStop(1, '#0ff');
+        }
+        
+        ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(f.x, f.y, r, 0, Math.PI*2); ctx.fill();
         ctx.restore();
     });
 
@@ -214,8 +330,21 @@ function draw() {
     ctx.restore();
 
     ctx.restore();
-    document.getElementById('stage').innerText = `EVO: ${player.level+1} - ${evolutions[player.level].name}`;
-    document.getElementById('xp').innerText = `МАССА: ${player.xp} / ${player.level===8 ? '1000' : evolutions[player.level].xp}`;
+
+    // UI Обновление
+    const evo = evolutions[player.level];
+    document.getElementById('stage-name').innerText = `СТАДИЯ: ${player.level+1}`;
+    document.getElementById('evo-name').innerText = evo.name;
+    
+    if(player.level === 8) {
+        document.getElementById('xp-text').innerText = `ОЧКИ ХАОСА: ${bossPoints} / 1000`;
+        document.getElementById('xp-bar-fill').style.width = (bossPoints/1000*100) + '%';
+        document.getElementById('xp-bar-fill').style.background = 'red';
+    } else {
+        document.getElementById('xp-text').innerText = `МАССА: ${player.xp} / ${evo.xp} (x${evo.scoreMult})`;
+        document.getElementById('xp-bar-fill').style.width = (player.xp/evo.xp*100) + '%';
+        document.getElementById('xp-bar-fill').style.background = 'lime';
+    }
 }
 loop();
 </script>
