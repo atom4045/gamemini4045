@@ -3,330 +3,431 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Underground: Minigun & Supers Update</title>
+    <title>Underground: Ultra Titan Update</title>
     <style>
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: #f0f2f5; overflow: hidden; touch-action: none; font-family: sans-serif; }
-        canvas { display: block; }
-        #ui { position: absolute; top: 10px; left: 10px; pointer-events: none; background: rgba(255,255,255,0.8); padding: 10px; border-radius: 8px; border: 1px solid #ccc; }
-        #money-display { color: #d35400; font-weight: bold; }
-        #weapon-dock { position: absolute; bottom: 85px; left: 50%; transform: translateX(-50%); display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; width: 95%; }
-        .w-btn { padding: 6px 10px; background: #fff; border: 2px solid #ddd; border-radius: 6px; font-size: 11px; font-weight: bold; position: relative; }
-        .w-btn.active { border-color: #e74c3c; background: #ffeaa7; }
-        .w-btn.locked { opacity: 0.5; background: #dfe6e9; }
-        
-        #super-btn { position: absolute; bottom: 20px; right: 20px; width: 75px; height: 75px; border-radius: 50%; background: #dfe6e9; border: 4px solid #b2bec3; font-weight: bold; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 11px; }
-        #super-btn.ready { background: #fdcb6e; border-color: #f1c40f; color: #000; box-shadow: 0 0 15px #f1c40f; cursor: pointer; }
-        
-        #overheat-bar { position: absolute; bottom: 165px; left: 50%; transform: translateX(-50%); width: 200px; height: 10px; background: #dfe6e9; border-radius: 5px; display: none; overflow: hidden; border: 1px solid #ccc; }
-        #overheat-fill { width: 0%; height: 100%; background: #e67e22; transition: width 0.1s; }
-
-        #death-screen, #shop-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 100; text-align: center; }
-        #death-screen { background: rgba(0,0,0,0.8); color: white; }
-        #shop-overlay { background: rgba(255,255,255,0.95); }
-        .btn-ui { padding: 12px 30px; background: #3498db; border: none; color: white; border-radius: 8px; font-weight: bold; margin-top: 15px; }
-        .shop-card { background: #fff; padding: 15px; border-radius: 12px; border: 2px solid #dfe6e9; width: 160px; margin: 5px; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #1a1a1a; overflow: hidden; touch-action: none; font-family: 'Courier New', Courier, monospace; }
+        canvas { display: block; background-color: #f5f6fa; }
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+        .panel { position: absolute; background: rgba(255, 255, 255, 0.9); padding: 15px; border-radius: 10px; border: 2px solid #2f3640; pointer-events: auto; }
+        #stats { top: 10px; left: 10px; min-width: 150px; }
+        #weapon-info { top: 10px; right: 10px; width: 250px; }
+        #weapon-dock { bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 5px; flex-wrap: wrap; justify-content: center; width: 90%; }
+        .w-btn { padding: 8px 12px; background: #dcdde1; border: 2px solid #7f8c8d; border-radius: 5px; font-weight: bold; cursor: pointer; font-size: 12px; }
+        .w-btn.active { background: #f1c40f; border-color: #e67e22; transform: scale(1.1); }
+        #super-btn { position: absolute; bottom: 120px; right: 20px; width: 90px; height: 90px; border-radius: 50%; background: #2f3640; color: white; border: 5px solid #7f8c8d; cursor: pointer; font-weight: bold; pointer-events: auto; }
+        #super-btn.ready { background: #e74c3c; border-color: #f1c40f; box-shadow: 0 0 20px #e74c3c; }
+        #overheat-container { position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%); width: 200px; height: 15px; background: #eee; border: 2px solid #333; display: none; }
+        #overheat-bar { height: 100%; width: 0%; background: orange; }
+        #death-screen { position: absolute; inset: 0; background: rgba(0,0,0,0.9); color: white; display: none; flex-direction: column; align-items: center; justify-content: center; pointer-events: auto; z-index: 1000; }
+        .status-tag { font-size: 10px; font-weight: bold; text-transform: uppercase; }
     </style>
 </head>
 <body>
 
-    <canvas id="gameCanvas"></canvas>
-    
-    <div id="ui">
-        <div>Комната: <span id="roomNum">1</span> / 10</div>
-        <div style="color: #e74c3c;">HP: <span id="hp">100</span></div>
-        <div id="money-display">💰 <span id="coins">0</span></div>
-        <div id="kill-ui" style="font-size: 11px;">Килы для супер: <span id="killsNeeded">5</span></div>
+<div id="death-screen">
+    <h1 style="color: #e74c3c; font-size: 50px;">ПОТРАЧЕНО</h1>
+    <p id="final-stats"></p>
+    <button onclick="location.reload()" style="padding: 20px 40px; font-size: 20px; cursor: pointer;">ВОСКРЕСНУТЬ</button>
+</div>
+
+<div id="ui-layer">
+    <div id="stats" class="panel">
+        <div>❤️ HP: <span id="hp-val">100</span></div>
+        <div style="color: #3498db;">🛡️ Броня: <span id="armor-val">0</span></div>
+        <div style="color: #d35400;">💰 Монеты: <span id="coin-val">0</span></div>
+        <div style="font-size: 12px; margin-top: 5px;">Этаж: <span id="room-val">1</span>/20</div>
     </div>
 
-    <div id="overheat-bar"><div id="overheat-fill"></div></div>
-
-    <button id="super-btn" onclick="activateSuper()">ЗАРЯД...</button>
-
-    <div id="weapon-dock" id="dock-btns">
-        <button class="w-btn active" onclick="changeW(0)">Базука</button>
-        <button class="w-btn" onclick="changeW(1)">Автомат</button>
-        <button class="w-btn" onclick="changeW(2)">2 Пистолета</button>
-        <button class="w-btn" onclick="changeW(3)">Меч</button>
-        <button class="w-btn locked" id="minigun-btn" onclick="buyMinigun()">Миниган (300💰)</button>
-        <button class="w-btn" onclick="changeW(5)">Бластер</button>
-        <button class="w-btn" onclick="changeW(6)">Сингуляр</button>
+    <div id="weapon-info" class="panel">
+        <b id="w-name">Оружие</b><hr>
+        <div id="w-desc" style="font-size: 11px;">Описание</div>
+        <div id="w-super-desc" style="color: #c0392b; font-size: 11px; margin-top:5px; font-weight:bold;">Супер: ???</div>
     </div>
 
-    <div id="shop-overlay">
-        <h2>ПРОКАЧКА</h2>
-        <div style="display: flex; flex-wrap: wrap; justify-content: center;">
-            <div class="shop-card"><h4>УРОН</h4><p>💰 <span id="c-dmg">60</span></p><button class="btn-ui" onclick="buyUp('dmg')">КУПИТЬ</button></div>
-            <div class="shop-card"><h4>ХП (+25)</h4><p>💰 <span id="c-hp">50</span></p><button class="btn-ui" onclick="buyUp('hp')">КУПИТЬ</button></div>
-        </div>
-        <button class="btn-ui" onclick="closeShop()">ВПЕРЕД</button>
-    </div>
+    <div id="overheat-container"><div id="overheat-bar"></div></div>
 
-    <div id="death-screen">
-        <h1>ТЫ ПОГИБ</h1>
-        <p>Собрано монет: <span id="final-coins">0</span></p>
-        <button class="btn-ui" style="background:#e74c3c" onclick="location.reload()">ИГРАТЬ СНАЧАЛА</button>
+    <button id="super-btn" onclick="triggerSuper()">SUPER<br>(100💰)</button>
+
+    <div id="weapon-dock">
+        <button class="w-btn active" onclick="selectWeapon(0)">БАЗУКА</button>
+        <button class="w-btn" onclick="selectWeapon(1)">АВТОМАТ</button>
+        <button class="w-btn" onclick="selectWeapon(2)">2 ПИСТОЛЕТА</button>
+        <button class="w-btn" onclick="selectWeapon(3)">МЕЧ</button>
+        <button class="w-btn" onclick="selectWeapon(4)">МИНИГАН</button>
+        <button class="w-btn" onclick="selectWeapon(5)">ДРОБОВИК</button>
+        <button class="w-btn" onclick="selectWeapon(6)">КЛИНОК</button>
+        <button class="w-btn" onclick="selectWeapon(7)">СИНГУЛЯР</button>
     </div>
+</div>
+
+<canvas id="game"></canvas>
 
 <script>
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-    let w, h;
-    function resize() { w = window.innerWidth; h = window.innerHeight; canvas.width = w; canvas.height = h; }
-    window.addEventListener('resize', resize); resize();
+/** * --- ПОЛНЫЙ КОД ИГРЫ (UNDERGROUND ULTRA) ---
+ */
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+let W, H, room = 1, coins = 100, armor = 0, lastShield = 0;
+let isDead = false;
 
-    let currentRoom = 1, coins = 0, isGameOver = false, isShopOpen = false, kills = 0;
-    const player = { 
-        x: 0, y: 0, r: 18, hp: 100, maxHp: 100, speed: 4.8, dmgM: 1, wIdx: 0, rel: 0,
-        heat: 0, overheated: false,
-        superTimers: [0,0,0,0,0,0,0], // CD для каждого оружия
-        superActive: 0 // Длительность активной ульты
-    };
+const player = {
+    x: 0, y: 0, r: 20, hp: 100, maxHp: 100, speed: 5,
+    wIdx: 0, reload: 0, heat: 0, isOverheated: false,
+    superActive: 0, superTimer: 0,
+    dualTurn: false
+};
 
-    const WEAPONS = [
-        { name: "Базука", type: "exp", dmg: 95, delay: 130, bS: 6.5, color: "#e67e22", expR: 105, cd: 1200 },
-        { name: "Автомат", type: "rap", dmg: 18, delay: 9, bS: 12, color: "#f1c40f", mag: 30, rel: 100, cd: 1200 },
-        { name: "Пистолеты", type: "dual", dmg: 35, delay: 15, bS: 13, color: "#3498db", cd: 1200 },
-        { name: "Меч", type: "melee", dmg: 60, delay: 35, range: 110, arc: 1.2, color: "#7f8c8d", cd: 1200 }, // 20 сек (1200 фреймов)
-        { name: "Миниган", type: "mini", dmg: 22, delay: 4, bS: 15, color: "#2d3436", locked: true, cd: 1200 },
-        { name: "Бластер", type: "laser", dmg: 70, delay: 20, bS: 18, color: "#00b894", bounce: 3, cd: 1200 },
-        { name: "Сингуляр", type: "grav", dmg: 25, delay: 160, bS: 3, color: "#6c5ce7", cd: 1200 }
-    ];
+const WEAPONS = [
+    { name: "Базука", desc: "Мощный взрыв по площади. Медленно.", super: "Ядерный удар", dmg: 100, delay: 100, speed: 7, color: "#e67e22" },
+    { name: "Автомат", desc: "Средний урон, высокая точность.", super: "Огненный залп (Замедление)", dmg: 15, delay: 7, speed: 14, color: "#f1c40f" },
+    { name: "2 Пистолета", desc: "Стреляют по очереди.", super: "Стихийный цикл (Яд-Лед-Огонь-BOM!)", dmg: 25, delay: 12, speed: 16, color: "#3498db" },
+    { name: "Меч", desc: "Ближний бой. Отбрасывает.", super: "Танцующие клинки (+Пули)", dmg: 60, delay: 30, range: 130, color: "#95a5a6" },
+    { name: "Миниган", desc: "Очень быстро. Перегрев 30 выстр.", super: "Бесконечная лента + Наводка", dmg: 12, delay: 3, speed: 18, color: "#2d3436", cost: 300 },
+    { name: "Дробовик", desc: "4 дробины. Смертелен в упор.", super: "Круговой выстрел", dmg: 20, delay: 50, speed: 11, color: "#7f8c8d" },
+    { name: "Клинок", desc: "Наносит эффект кровотечения.", super: "Режим Вампира (Хил при ударе)", dmg: 35, delay: 20, range: 100, color: "#c0392b" },
+    { name: "Сингуляр", desc: "Стреляй РЯДОМ, чтобы стянуть врагов.", super: "Черная дыра (Огромный радиус)", dmg: 5, delay: 140, speed: 5, color: "#6c5ce7" }
+];
 
-    let bullets = [], enemies = [], parts = [];
-    const input = { move: {x:0, y:0, active:false}, shoot: {x:0, y:0, active:false, ang:0} };
+let enemies = [], bullets = [], particles = [], items = [], singularities = [];
 
-    function changeW(i) { 
-        if(WEAPONS[i].locked) return;
-        player.wIdx = i; 
-        document.querySelectorAll('.w-btn').forEach((b,idx)=>b.classList.toggle('active', idx===i));
-        document.getElementById('overheat-bar').style.display = (WEAPONS[i].type === 'mini') ? 'block' : 'none';
+// Управление
+const input = { move: {x:0, y:0, a:false}, shoot: {ang:0, a:false}, jL:{x:0,y:0}, jR:{x:0,y:0} };
+
+function init() {
+    resize();
+    spawnRoom();
+    requestAnimationFrame(gameLoop);
+}
+
+function resize() {
+    W = window.innerWidth; H = window.innerHeight;
+    canvas.width = W; canvas.height = H;
+}
+
+function selectWeapon(i) {
+    if (WEAPONS[i].name === "Миниган" && coins < 300 && !WEAPONS[i].bought) {
+        alert("Миниган стоит 300 монет!"); return;
     }
+    if (WEAPONS[i].name === "Миниган") WEAPONS[i].bought = true;
+    player.wIdx = i;
+    const btns = document.querySelectorAll('.w-btn');
+    btns.forEach((b, idx) => b.classList.toggle('active', idx === i));
+    updateUI();
+}
 
-    function buyMinigun() {
-        if(coins >= 300) {
-            coins -= 300; WEAPONS[4].locked = false;
-            let btn = document.getElementById('minigun-btn');
-            btn.classList.remove('locked'); btn.innerText = "Миниган";
-            changeW(4); updateUI();
-        }
+function updateUI() {
+    const w = WEAPONS[player.wIdx];
+    document.getElementById('w-name').innerText = w.name;
+    document.getElementById('w-desc').innerText = w.desc;
+    document.getElementById('w-super-desc').innerText = "СУПЕР: " + w.super;
+    document.getElementById('hp-val').innerText = Math.floor(player.hp);
+    document.getElementById('armor-val').innerText = Math.floor(armor);
+    document.getElementById('coin-val').innerText = coins;
+    document.getElementById('room-val').innerText = room;
+    document.getElementById('overheat-container').style.display = (w.name === "Миниган") ? "block" : "none";
+}
+
+function spawnRoom() {
+    enemies = []; bullets = []; singularities = [];
+    player.x = W/2; player.y = H/2;
+    let enemyCount = 5 + room * 2;
+    
+    for(let i=0; i<enemyCount; i++) {
+        let type = "cube";
+        if (room >= 3 && i === 0) type = "titan";
+        if (room >= 5 && i === 1) type = "shooter";
+        if (room >= 8 && i === 2) type = "healer";
+        if (room >= 10 && i === 3) type = "armored_titan";
+        if (room >= 12 && i === 4) type = "shotgunner";
+        if (room >= 15 && i === 5) type = "colossal";
+
+        let ex = Math.random() * W, ey = Math.random() * H;
+        if (Math.hypot(ex-player.x, ey-player.y) < 250) ex += 300; 
+        enemies.push(new Enemy(ex, ey, type));
     }
+}
 
-    function spawnBullet(x, y, ang, wp, isPl = true) {
-        bullets.push({ x, y, vx: Math.cos(ang)*wp.bS, vy: Math.sin(ang)*wp.bS, wp, isPl, bounces: wp.bounce||0, active: true });
-    }
-
-    function activateSuper() {
-        if (kills < 5 || player.superTimers[player.wIdx] > 0) return;
+class Enemy {
+    constructor(x, y, type) {
+        this.x = x; this.y = y; this.type = type;
+        this.hp = 100; this.maxHp = 100; this.size = 30; this.speed = 2;
+        this.status = { fire: 0, ice: 0, poison: 0, bleed: 0 };
+        this.rel = 0;
         
-        player.superActive = (player.wIdx === 3) ? 600 : 300; // 10 сек для меча, 5 для остальных
-        player.superTimers[player.wIdx] = WEAPONS[player.wIdx].cd;
-        kills = 0;
-        updateUI();
+        switch(type) {
+            case "titan": this.hp = 1000; this.size = 70; this.speed = 1.2; break;
+            case "armored_titan": this.hp = 1500; this.size = 75; this.speed = 0.8; break;
+            case "colossal": this.hp = 4000; this.size = 130; this.speed = 0.5; break;
+            case "shooter": this.hp = 150; this.speed = 1.5; break;
+            case "shotgunner": this.hp = 200; this.speed = 1.3; break;
+            case "healer": this.hp = 120; this.speed = 1; break;
+        }
+        this.maxHp = this.hp;
     }
 
-    class Enemy {
-        constructor(x, y, type) {
-            this.x = x; this.y = y; this.type = type;
-            this.hp = (type==='titan'? 1000 : 60) + (currentRoom * 20);
-            this.maxHp = this.hp; this.s = type==='titan'? 80 : 30;
-            this.speed = type==='titan'? 0.6 : 1.7 + Math.random();
-        }
-        update() {
-            let dx = player.x-this.x, dy = player.y-this.y, d = Math.hypot(dx,dy);
-            this.x += (dx/d)*this.speed; this.y += (dy/d)*this.speed;
-            if(d < player.r + this.s/2) player.hp -= 0.4;
-        }
-        draw() {
-            // Тело
-            ctx.fillStyle = this.type==='titan'?'#d63031':'#b2bec3';
-            ctx.fillRect(this.x-this.s/2, this.y-this.s/2, this.s, this.s);
-            // Полоска ХП
-            ctx.fillStyle = '#eee'; ctx.fillRect(this.x-this.s/2, this.y-this.s/2-12, this.s, 6);
-            ctx.fillStyle = '#2ecc71'; ctx.fillRect(this.x-this.s/2, this.y-this.s/2-12, this.s * (this.hp/this.maxHp), 6);
-            ctx.strokeStyle = '#333'; ctx.strokeRect(this.x-this.s/2, this.y-this.s/2-12, this.s, 6);
-        }
-    }
-
-    function startRoom() {
-        isShopOpen = false; document.getElementById('shop-overlay').style.display='none';
-        player.x = w/2; player.y = h/2;
-        bullets = []; enemies = []; parts = [];
-        let count = 4 + Math.floor(currentRoom/1.5);
-        for(let i=0; i<count; i++) {
-            let ex, ey;
-            do { ex=Math.random()*w; ey=Math.random()*h; } while(Math.hypot(ex-player.x, ey-player.y)<280);
-            enemies.push(new Enemy(ex, ey, (i===0 && currentRoom > 3)?'titan':'norm'));
-        }
-        updateUI();
-    }
-
-    function buyUp(t) {
-        let cost = (t==='dmg') ? 60 : 50;
-        if(coins >= cost) {
-            coins -= cost;
-            if(t==='hp') { player.maxHp += 25; player.hp = player.maxHp; }
-            else { player.dmgM += 0.25; }
-            updateUI();
-        }
-    }
-
-    function updateUI() {
-        document.getElementById('hp').innerText = Math.floor(player.hp);
-        document.getElementById('coins').innerText = coins;
-        document.getElementById('roomNum').innerText = currentRoom;
-        document.getElementById('killsNeeded').innerText = Math.max(0, 5 - kills);
+    update() {
+        let dx = player.x - this.x, dy = player.y - this.y;
+        let dist = Math.hypot(dx, dy);
         
-        const btn = document.getElementById('super-btn');
-        let cd = player.superTimers[player.wIdx];
-        if(kills >= 5 && cd <= 0) {
-            btn.classList.add('ready'); btn.innerText = "ГОТОВО!";
+        // Эффекты состояний
+        let moveMult = 1;
+        if (this.status.ice > 0) { moveMult = 0.2; this.status.ice--; }
+        if (this.status.fire > 0) { this.takeDamage(0.1); moveMult *= 0.7; this.status.fire--; }
+        if (this.status.poison > 0) { this.takeDamage(0.3); this.status.poison--; }
+        if (this.status.bleed > 0) { this.takeDamage(0.2); this.status.bleed--; }
+
+        // Поведение
+        if (this.type === "healer") {
+            let target = enemies.find(e => e !== this && e.hp < e.maxHp);
+            if (target) {
+                let tx = target.x - this.x, ty = target.y - this.y;
+                let td = Math.hypot(tx, ty);
+                if (td > 100) { this.x += (tx/td)*this.speed*moveMult; this.y += (ty/td)*this.speed*moveMult; }
+                target.hp += 0.2;
+            }
         } else {
-            btn.classList.remove('ready');
-            btn.innerText = cd > 0 ? `КД ${Math.ceil(cd/60)}с` : `ЗАРЯД...`;
+            this.x += (dx/dist) * this.speed * moveMult;
+            this.y += (dy/dist) * this.speed * moveMult;
         }
+
+        // Атаки
+        if (this.type === "shooter" && dist < 400 && this.rel <= 0) {
+            shootBullet(this.x, this.y, Math.atan2(dy, dx), 6, "red", 15, false);
+            this.rel = 90;
+        }
+        if (this.type === "shotgunner" && dist < 250 && this.rel <= 0) {
+            for(let i=-1; i<=1; i+=0.6) shootBullet(this.x, this.y, Math.atan2(dy, dx)+i*0.2, 5, "red", 10, false);
+            this.rel = 120;
+        }
+        if (this.type === "colossal" && dist < 160) {
+            if (frameCount % 60 === 0) {
+                createExplosion(this.x, this.y, "#e67e22", 80);
+                damagePlayer(15);
+            }
+        }
+        if (this.rel > 0) this.rel--;
+        if (dist < player.r + this.size/2) damagePlayer(0.5);
     }
 
-    function loop() {
-        if(isGameOver || isShopOpen) { requestAnimationFrame(loop); return; }
-        ctx.fillStyle = '#f0f2f5'; ctx.fillRect(0,0,w,h);
+    draw() {
+        ctx.save();
+        let color = "#7f8c8d";
+        if(this.type === "healer") color = "#2ecc71";
+        if(this.type === "colossal") color = "#e67e22";
+        if(this.status.ice > 0) color = "#74b9ff";
+        if(this.status.fire > 0) color = "#ff7675";
         
-        // Кулдауны
-        player.superTimers.forEach((t, i) => { if(t > 0) player.superTimers[i]--; });
-        if(player.superActive > 0) player.superActive--;
+        ctx.fillStyle = color;
+        ctx.fillRect(this.x - this.size/2, this.y - this.size/2, this.size, this.size);
+        ctx.strokeStyle = "#2d3436"; ctx.strokeRect(this.x - this.size/2, this.y - this.size/2, this.size, this.size);
+        
+        // HP Bar
+        ctx.fillStyle = "#eee"; ctx.fillRect(this.x - this.size/2, this.y - this.size/2 - 10, this.size, 5);
+        ctx.fillStyle = "#2ecc71"; ctx.fillRect(this.x - this.size/2, this.y - this.size/2 - 10, this.size * (this.hp/this.maxHp), 5);
+        ctx.restore();
+    }
 
-        // Перегрев Минигана
-        if(player.overheated) {
-            player.heat -= 0.3;
-            if(player.heat <= 0) { player.heat = 0; player.overheated = false; }
-        } else if(player.heat > 0) {
-            player.heat -= 0.05;
+    takeDamage(d) {
+        this.hp -= d;
+        if (this.hp <= 0 && !this.dead) {
+            this.dead = true;
+            coins += 15;
+            if (this.type.includes("titan")) coins += 50;
         }
-        document.getElementById('overheat-fill').style.width = (player.heat / 30 * 100) + "%";
-        document.getElementById('overheat-fill').style.background = player.overheated ? "#e74c3c" : "#e67e22";
+    }
+}
 
-        // Игрок
-        if(input.move.active) {
-            player.x = Math.max(player.r, Math.min(w-player.r, player.x + input.move.x*player.speed));
-            player.y = Math.max(player.r, Math.min(h-player.r, player.y + input.move.y*player.speed));
-        }
-        ctx.fillStyle = '#0984e3'; ctx.beginPath(); ctx.arc(player.x, player.y, player.r, 0, Math.PI*2); ctx.fill();
+function shootBullet(x, y, ang, spd, col, dmg, isPl, special = null) {
+    bullets.push({ x, y, vx: Math.cos(ang)*spd, vy: Math.sin(ang)*spd, col, dmg, isPl, special, life: 200 });
+}
 
-        // Стрельба
-        if(player.rel > 0) player.rel--;
-        if(input.shoot.active && player.rel <= 0 && !player.overheated) {
-            let wp = WEAPONS[player.wIdx];
-            
-            if(wp.type === 'melee') {
-                let superMult = (player.superActive > 0) ? 2 : 1;
-                parts.push({x:player.x, y:player.y, ang:input.shoot.ang, r:wp.range, arc:wp.arc, life:5, color:'rgba(0,0,0,0.1)'});
-                if(player.superActive > 0) {
-                    parts.push({x:player.x, y:player.y, ang:input.shoot.ang + 0.5, r:wp.range, arc:wp.arc, life:5, color:'rgba(0,0,255,0.1)'});
-                    spawnBullet(player.x, player.y, input.shoot.ang, {bS:8, color:'#aaa', dmg:10}, true);
-                }
-                enemies.forEach(e => {
-                    let d = Math.hypot(e.x-player.x, e.y-player.y);
-                    if(d < wp.range && Math.abs(input.shoot.ang - Math.atan2(e.y-player.y, e.x-player.x)) < wp.arc) e.hp -= wp.dmg * player.dmgM * superMult;
-                });
-            } else if(wp.type === 'dual') {
-                let offset = (Math.random() > 0.5 ? 10 : -10);
-                spawnBullet(player.x + Math.cos(input.shoot.ang+1.5)*offset, player.y + Math.sin(input.shoot.ang+1.5)*offset, input.shoot.ang, wp);
-            } else if(wp.type === 'mini') {
-                spawnBullet(player.x, player.y, input.shoot.ang + (Math.random()-0.5)*0.1, wp);
-                if(player.superActive <= 0) {
-                    player.heat++;
-                    if(player.heat >= 30) player.overheated = true;
-                }
-            } else {
-                spawnBullet(player.x, player.y, input.shoot.ang, wp);
-            }
-            player.rel = wp.delay;
-        }
+function triggerSuper() {
+    if (coins < 100 || player.superActive > 0) return;
+    coins -= 100;
+    player.superActive = 300; // 5 сек
+    player.superType = WEAPONS[player.wIdx].name;
+    updateUI();
+}
 
-        // Пули
-        bullets.forEach((b, i) => {
-            // Автонаведение Минигана в Супер-режиме
-            if(b.wp.type === 'mini' && player.superActive > 0 && enemies.length > 0) {
-                let target = enemies[0];
-                let dist = Math.hypot(target.x - b.x, target.y - b.y);
-                b.vx += (target.x - b.x) / dist * 0.8;
-                b.vy += (target.y - b.y) / dist * 0.8;
-                let speed = Math.hypot(b.vx, b.vy);
-                b.vx = (b.vx / speed) * b.wp.bS;
-                b.vy = (b.vy / speed) * b.wp.bS;
-            }
+function damagePlayer(val) {
+    if (armor > 0) { armor -= val; if (armor < 0) { player.hp += armor; armor = 0; } }
+    else player.hp -= val;
+    if (player.hp <= 0) isDead = true;
+}
 
-            b.x += b.vx; b.y += b.vy;
-            ctx.fillStyle = b.wp.color; ctx.beginPath(); ctx.arc(b.x, b.y, (b.wp.type==='exp'?8:4), 0, Math.PI*2); ctx.fill();
+function createExplosion(x, y, col, rad) {
+    for(let i=0; i<15; i++) {
+        particles.push({x, y, vx:(Math.random()-0.5)*10, vy:(Math.random()-0.5)*10, col, life:30});
+    }
+    enemies.forEach(e => {
+        if (Math.hypot(e.x-x, e.y-y) < rad) e.takeDamage(80);
+    });
+}
 
-            if(b.x<0 || b.x>w || b.y<0 || b.y>h) b.active = false;
+function gameLoop() {
+    if (isDead) {
+        document.getElementById('death-screen').style.display = 'flex';
+        document.getElementById('final-stats').innerText = `Комнаты: ${room} | Монеты: ${coins}`;
+        return;
+    }
+    frameCount++;
+    ctx.clearRect(0, 0, W, H);
+    
+    // Сетка
+    ctx.strokeStyle = "#dfe6e9"; ctx.lineWidth = 1;
+    for(let x=0; x<W; x+=50) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+    for(let y=0; y<H; y+=50) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+
+    // Щит
+    if (Date.now() - lastShield > 30000) {
+        items.push({x:Math.random()*W, y:Math.random()*H, type:'shield'});
+        lastShield = Date.now();
+    }
+    items.forEach((it, i) => {
+        ctx.fillStyle = "#3498db"; ctx.beginPath(); ctx.arc(it.x, it.y, 15, 0, Math.PI*2); ctx.fill();
+        if (Math.hypot(player.x-it.x, player.y-it.y) < 30) { armor += 100; items.splice(i, 1); }
+    });
+
+    // Игрок
+    if (input.move.a) {
+        player.x += input.move.x * player.speed;
+        player.y += input.move.y * player.speed;
+    }
+    ctx.fillStyle = "#0984e3"; ctx.beginPath(); ctx.arc(player.x, player.y, player.r, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = "white"; ctx.lineWidth = 3; ctx.stroke();
+
+    // Стрельба
+    let w = WEAPONS[player.wIdx];
+    if (player.reload > 0) player.reload--;
+    if (player.superActive > 0) player.superActive--;
+
+    if (input.shoot.a && player.reload <= 0 && !player.isOverheated) {
+        let ang = input.shoot.ang;
+        if (w.name === "Меч" || w.name === "Клинок") {
+            let dmg = w.dmg;
+            if (player.superActive > 0 && w.name === "Клинок") player.hp = Math.min(player.maxHp, player.hp + 5);
             enemies.forEach(e => {
-                if(Math.hypot(b.x-e.x, b.y-e.y) < e.s/2 + 5) {
-                    if(b.wp.type === 'exp') {
-                        enemies.forEach(en => { if(Math.hypot(en.x-b.x, en.y-b.y)<b.wp.expR) en.hp -= b.wp.dmg*player.dmgM; });
-                    } else e.hp -= (b.wp.dmg || 10)*player.dmgM;
-                    b.active = false;
+                let d = Math.hypot(e.x-player.x, e.y-player.y);
+                if (d < w.range && Math.abs(ang - Math.atan2(e.y-player.y, e.x-player.x)) < 1) {
+                    e.takeDamage(dmg);
+                    if (w.name === "Клинок") e.status.bleed = 200;
                 }
             });
-        });
-        bullets = bullets.filter(b => b.active);
-
-        enemies.forEach((e, i) => {
-            e.update(); e.draw();
-            if(e.hp <= 0) { coins += (e.type==='titan'? 80 : 15); kills++; enemies.splice(i, 1); updateUI(); }
-        });
-
-        parts.forEach((p, i) => {
-            ctx.strokeStyle = p.color; ctx.lineWidth = 10;
-            ctx.beginPath(); ctx.arc(p.x, p.y, p.r, p.ang-p.arc, p.ang+p.arc); ctx.stroke();
-            p.life--; if(p.life <= 0) parts.splice(i, 1);
-        });
-
-        if(enemies.length === 0) { isShopOpen = true; document.getElementById('shop-overlay').style.display='flex'; }
-        if(player.hp <= 0) { 
-            isGameOver = true; 
-            document.getElementById('death-screen').style.display='flex'; 
-            document.getElementById('final-coins').innerText = coins;
+            player.reload = w.delay;
+        } else if (w.name === "Сингуляр") {
+            shootBullet(player.x, player.y, ang, w.speed, w.color, 0, true, "singularity");
+            player.reload = w.delay;
+        } else if (w.name === "2 Пистолета") {
+            let offset = player.dualTurn ? 15 : -15;
+            let sx = player.x + Math.cos(ang+Math.PI/2)*offset;
+            let sy = player.y + Math.sin(ang+Math.PI/2)*offset;
+            let spec = null;
+            if (player.superActive > 0) {
+                if(player.superActive > 220) spec = "poison";
+                else if(player.superActive > 150) spec = "ice";
+                else if(player.superActive > 80) spec = "fire";
+                else spec = "nuke";
+            }
+            shootBullet(sx, sy, ang, w.speed, w.color, w.dmg, true, spec);
+            player.dualTurn = !player.dualTurn;
+            player.reload = w.delay;
+        } else if (w.name === "Миниган") {
+            shootBullet(player.x, player.y, ang + (Math.random()-0.5)*0.2, w.speed, w.color, w.dmg, true);
+            if (player.superActive <= 0) {
+                player.heat += 1;
+                if (player.heat >= 30) player.isOverheated = true;
+            }
+            player.reload = w.delay;
+        } else {
+            shootBullet(player.x, player.y, ang, w.speed, w.color, w.dmg, true);
+            player.reload = w.delay;
         }
-        requestAnimationFrame(loop);
     }
 
-    function closeShop() { currentRoom++; if(currentRoom > 10) alert("ПОБЕДА!"); else startRoom(); }
+    if (player.isOverheated) {
+        player.heat -= 0.1;
+        if(player.heat <= 0) { player.heat = 0; player.isOverheated = false; }
+    } else if (player.heat > 0) player.heat -= 0.05;
+    document.getElementById('overheat-bar').style.width = (player.heat/30)*100 + "%";
 
-    // Управление джойстиками
-    const jL = {id: null, sx:0, sy:0}, jR = {id: null, sx:0, sy:0};
-    const divL = document.getElementById('j-left'), divR = document.getElementById('j-right');
-
-    window.addEventListener('touchstart', e => {
-        for(let t of e.changedTouches) {
-            if(t.target.tagName === 'BUTTON') continue;
-            if(t.clientX < w/2 && jL.id === null) {
-                jL.id = t.identifier; jL.sx = t.clientX; jL.sy = t.clientY; input.move.active = true;
-            } else if(jR.id === null) {
-                jR.id = t.identifier; jR.sx = t.clientX; jR.sy = t.clientY; input.shoot.active = true;
+    // Обновление объектов
+    singularities.forEach((s, i) => {
+        ctx.fillStyle = "rgba(108, 92, 231, 0.3)"; ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2); ctx.fill();
+        enemies.forEach(e => {
+            let d = Math.hypot(e.x-s.x, e.y-s.y);
+            if (d < s.r) {
+                e.x += (s.x - e.x)*0.05; e.y += (s.y - e.y)*0.05;
+                e.takeDamage(0.5);
             }
-        }
+        });
+        s.life--; if(s.life <= 0) singularities.splice(i, 1);
     });
 
-    window.addEventListener('touchmove', e => {
-        for(let t of e.changedTouches) {
-            if(t.identifier === jL.id) {
-                let dx=t.clientX-jL.sx, dy=t.clientY-jL.sy, d=Math.min(Math.hypot(dx,dy),40);
-                input.move.x=Math.cos(Math.atan2(dy,dx))*(d/40); input.move.y=Math.sin(Math.atan2(dy,dx))*(d/40);
+    bullets.forEach((b, i) => {
+        b.x += b.vx; b.y += b.vy;
+        ctx.fillStyle = b.col; ctx.beginPath(); ctx.arc(b.x, b.y, 5, 0, Math.PI*2); ctx.fill();
+        
+        if (b.isPl) {
+            enemies.forEach(e => {
+                if (Math.hypot(e.x-b.x, e.y-b.y) < e.size/2) {
+                    if (b.special === "nuke") createExplosion(b.x, b.y, "red", 200);
+                    if (b.special === "fire") e.status.fire = 300;
+                    if (b.special === "ice") e.status.ice = 180;
+                    if (b.special === "poison") e.status.poison = 400;
+                    e.takeDamage(b.dmg);
+                    b.life = 0;
+                }
+            });
+            if (b.special === "singularity" && b.life < 150) {
+                singularities.push({x:b.x, y:b.y, r:150, life:180});
+                b.life = 0;
             }
-            if(t.identifier === jR.id) {
-                input.shoot.ang = Math.atan2(t.clientY-jR.sy, t.clientX-jR.sx);
-            }
+        } else if (Math.hypot(player.x-b.x, player.y-b.y) < player.r) {
+            damagePlayer(b.dmg); b.life = 0;
         }
-    }, {passive:false});
-
-    window.addEventListener('touchend', e => {
-        for(let t of e.changedTouches) {
-            if(t.identifier === jL.id) { jL.id=null; input.move.active=false; }
-            if(t.identifier === jR.id) { jR.id=null; input.shoot.active=false; }
-        }
+        b.life--; if(b.life <= 0 || b.x<0 || b.x>W || b.y<0 || b.y>H) bullets.splice(i, 1);
     });
 
-    startRoom(); loop();
+    enemies.forEach((e, i) => {
+        e.update(); e.draw();
+        if (e.dead) enemies.splice(i, 1);
+    });
+
+    if (enemies.length === 0) { room++; if(room > 20) alert("ПОБЕДА!"); else spawnRoom(); }
+    
+    updateUI();
+    requestAnimationFrame(gameLoop);
+}
+
+// Управление
+window.addEventListener('touchstart', e => {
+    for(let t of e.changedTouches) {
+        if(t.target.tagName === 'BUTTON') continue;
+        if(t.clientX < W/2) { input.jL = {id:t.identifier, sx:t.clientX, sy:t.clientY}; input.move.a = true; }
+        else { input.jR = {id:t.identifier, sx:t.clientX, sy:t.clientY}; input.shoot.a = true; }
+    }
+});
+window.addEventListener('touchmove', e => {
+    for(let t of e.changedTouches) {
+        if(t.identifier === input.jL.id) {
+            let dx = t.clientX - input.jL.sx, dy = t.clientY - input.jL.sy;
+            let d = Math.min(Math.hypot(dx, dy), 50);
+            input.move.x = (dx/d); input.move.y = (dy/d);
+        }
+        if(t.identifier === input.jR.id) {
+            input.shoot.ang = Math.atan2(t.clientY - input.jR.sy, t.clientX - input.jR.sx);
+        }
+    }
+});
+window.addEventListener('touchend', e => {
+    for(let t of e.changedTouches) {
+        if(t.identifier === input.jL.id) { input.jL.id = null; input.move.a = false; }
+        if(t.identifier === input.jR.id) { input.jR.id = null; input.shoot.a = false; }
+    }
+});
+
+let frameCount = 0;
+init();
 </script>
 </body>
 </html>
