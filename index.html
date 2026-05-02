@@ -3,27 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Underground: Hardcore Update</title>
+    <title>Underground: Light & Fixed</title>
     <style>
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: #0a0a0a; overflow: hidden; touch-action: none; font-family: sans-serif; color: white; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: #f0f2f5; overflow: hidden; touch-action: none; font-family: 'Segoe UI', sans-serif; color: #333; }
         canvas { display: block; }
-        #ui { position: absolute; top: 10px; left: 10px; pointer-events: none; }
-        #money-display { color: #f1c40f; font-weight: bold; }
+        
+        #ui { position: absolute; top: 10px; left: 10px; pointer-events: none; background: rgba(255,255,255,0.7); padding: 10px; border-radius: 8px; border: 1px solid #ccc; }
+        #money-display { color: #d35400; font-weight: bold; }
         
         #weapon-dock { position: absolute; bottom: 85px; left: 50%; transform: translateX(-50%); display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; width: 95%; }
-        .w-btn { padding: 6px 10px; background: rgba(30,30,30,0.9); border: 1px solid #444; color: #fff; border-radius: 4px; font-size: 11px; }
-        .w-btn.active { border-color: #e74c3c; background: #c0392b; }
+        .w-btn { padding: 6px 10px; background: #fff; border: 2px solid #ddd; color: #333; border-radius: 6px; font-size: 11px; font-weight: bold; }
+        .w-btn.active { border-color: #e74c3c; background: #ffeaa7; }
 
-        #super-btn { position: absolute; bottom: 20px; right: 20px; width: 70px; height: 70px; border-radius: 50%; background: #555; border: 4px solid #333; color: white; font-weight: bold; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 12px; transition: 0.3s; opacity: 0.5; }
-        #super-btn.ready { background: #f1c40f; border-color: #fff; color: #000; opacity: 1; box-shadow: 0 0 20px #f1c40f; cursor: pointer; }
+        #super-btn { position: absolute; bottom: 20px; right: 20px; width: 70px; height: 70px; border-radius: 50%; background: #dfe6e9; border: 4px solid #b2bec3; color: #636e72; font-weight: bold; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 11px; transition: 0.3s; }
+        #super-btn.ready { background: #fdcb6e; border-color: #f1c40f; color: #000; box-shadow: 0 0 15px rgba(241,196,15,0.5); cursor: pointer; }
 
-        #shop-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 100; }
-        .shop-card { background: #1e272e; padding: 15px; border-radius: 8px; text-align: center; margin: 5px; border: 1px solid #34495e; width: 200px; }
-        .buy-btn { background: #27ae60; border: none; color: white; padding: 8px; border-radius: 4px; width: 100%; margin-top: 5px; }
-        .buy-btn:disabled { background: #3d3d3d; }
+        #shop-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 100; }
+        .shop-card { background: #fff; padding: 15px; border-radius: 12px; text-align: center; margin: 5px; border: 2px solid #dfe6e9; width: 180px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .buy-btn { background: #2ecc71; border: none; color: white; padding: 10px; border-radius: 6px; width: 100%; margin-top: 5px; font-weight: bold; }
+        .buy-btn:disabled { background: #bdc3c7; }
         
-        #joystick-left { position: absolute; bottom: 20px; left: 20px; width: 80px; height: 80px; background: rgba(255,255,255,0.1); border-radius: 50%; display: none; }
-        .knob { position: absolute; top: 50%; left: 50%; width: 30px; height: 30px; background: rgba(255,255,255,0.3); border-radius: 50%; transform: translate(-50%, -50%); }
+        .joystick { position: absolute; width: 80px; height: 80px; background: rgba(0,0,0,0.1); border-radius: 50%; border: 2px solid rgba(0,0,0,0.15); display: none; }
+        .knob { position: absolute; top: 50%; left: 50%; width: 30px; height: 30px; background: rgba(0,0,0,0.3); border-radius: 50%; transform: translate(-50%, -50%); }
     </style>
 </head>
 <body>
@@ -31,10 +32,10 @@
     <canvas id="gameCanvas"></canvas>
     
     <div id="ui">
-        <div>Комната: <span id="roomNum">1</span> / 10</div>
-        <div style="color: #ff4757;">HP: <span id="hp">100</span></div>
+        <div style="font-weight: bold;">Комната: <span id="roomNum">1</span> / 10</div>
+        <div style="color: #e74c3c; font-weight: bold;">HP: <span id="hp">100</span></div>
         <div id="money-display">💰 <span id="coins">0</span></div>
-        <div id="kill-ui" style="font-size: 12px;">До СУПЕР: <span id="killsNeeded">5</span></div>
+        <div id="kill-ui" style="font-size: 12px;">Заряжаем Супер: <span id="killsNeeded">5</span></div>
     </div>
 
     <button id="super-btn" onclick="activateSuper()">SUPER NOT READY</button>
@@ -50,15 +51,16 @@
     </div>
 
     <div id="shop-overlay">
-        <h2>АРСЕНАЛ И ПРОКАЧКА</h2>
+        <h2 style="color: #2d3436;">УЛУЧШЕНИЯ</h2>
         <div style="display: flex; flex-wrap: wrap; justify-content: center;">
             <div class="shop-card"><h4>УРОН (+30%)</h4><p>Цена: <span id="c-dmg">60</span></p><button class="buy-btn" onclick="buy('dmg')">КУПИТЬ</button></div>
             <div class="shop-card"><h4>ЖИЗНЬ (+25)</h4><p>Цена: <span id="c-hp">50</span></p><button class="buy-btn" onclick="buy('hp')">КУПИТЬ</button></div>
         </div>
-        <button style="margin-top:20px; padding: 10px 30px;" onclick="closeShop()">ДАЛЕЕ</button>
+        <button style="margin-top:20px; padding: 12px 40px; background: #3498db; border: none; color: white; border-radius: 8px; font-weight: bold;" onclick="closeShop()">В ПУТЬ →</button>
     </div>
 
-    <div id="joystick-left"><div class="knob"></div></div>
+    <div id="j-left" class="joystick"><div class="knob"></div></div>
+    <div id="j-right" class="joystick"><div class="knob"></div></div>
 
 <script>
     const canvas = document.getElementById('gameCanvas');
@@ -68,39 +70,35 @@
     window.addEventListener('resize', resize); resize();
 
     let currentRoom = 1, coins = 0, isGameOver = false, isShopOpen = false;
-    let kills = 0, superCharge = 0, superCooldown = 0;
+    let kills = 0, superCooldown = 0;
 
-    const player = { x: 0, y: 0, r: 18, hp: 100, maxHp: 100, speed: 4.5, dmgM: 1, wIdx: 0, rel: 0 };
+    const player = { x: 0, y: 0, r: 18, hp: 100, maxHp: 100, speed: 4.8, dmgM: 1, wIdx: 0, rel: 0 };
     const upgrades = { dmg: { cost: 60 }, hp: { cost: 50 } };
 
     const WEAPONS = [
-        { name: "Базука", type: "exp", dmg: 90, delay: 130, bS: 6, color: "#e67e22", expR: 100 }, // НЕРФ: урон 200->90, радиус 180->100
-        { name: "Автомат", type: "rap", dmg: 18, delay: 9, bS: 13, color: "#f1c40f", mag: 25, rel: 100 },
-        { name: "Пистолет", type: "single", dmg: 40, delay: 25, bS: 12, color: "#3498db" }, // 1 ствол
-        { name: "Меч", type: "melee", dmg: 70, delay: 40, range: 120, arc: 1.2, color: "#fff" }, // НЕРФ урона, БАФ дистанции
-        { name: "Кинжалы", type: "melee", dmg: 40, delay: 12, range: 50, arc: 0.8, color: "#95a5a6" },
-        { name: "Бластер", type: "laser", dmg: 60, delay: 20, bS: 18, color: "#00ffcc", bounce: 3 }, // БАФ урона
-        { name: "Сингуляр", type: "grav", dmg: 5, delay: 160, bS: 4, color: "#9b59b6" } // НЕРФ притяжения
+        { name: "Базука", type: "exp", dmg: 85, delay: 140, bS: 6, color: "#e67e22", expR: 90 }, 
+        { name: "Автомат", type: "rap", dmg: 16, delay: 10, bS: 12, color: "#f1c40f", mag: 25, rel: 110 },
+        { name: "Пистолет", type: "single", dmg: 40, delay: 22, bS: 13, color: "#3498db" },
+        { name: "Меч", type: "melee", dmg: 60, delay: 38, range: 115, arc: 1.1, color: "#7f8c8d" },
+        { name: "Кинжалы", type: "melee", dmg: 35, delay: 11, range: 45, arc: 0.7, color: "#2d3436" },
+        { name: "Бластер", type: "laser", dmg: 65, delay: 20, bS: 17, color: "#00b894", bounce: 3 }, 
+        { name: "Сингуляр", type: "grav", dmg: 4, delay: 170, bS: 3.5, color: "#6c5ce7" }
     ];
 
-    let walls = [], bullets = [], enemies = [], parts = [];
-    const input = { move: {x:0, y:0, active:false}, shoot: {x:0, y:0, active:false}, lastAng: 0 };
+    let bullets = [], enemies = [], parts = [];
+    const input = { move: {x:0, y:0, active:false}, shoot: {x:0, y:0, active:false, ang:0} };
 
     function changeW(i) { player.wIdx = i; document.querySelectorAll('.w-btn').forEach((b,idx)=>b.classList.toggle('active', idx===i)); }
 
     function activateSuper() {
         if (kills < 5 || superCooldown > 0) return;
         let wp = WEAPONS[player.wIdx];
-        
-        // Уникальные суперы
         if(wp.type === 'exp') { for(let i=0; i<8; i++) spawnBullet(player.x, player.y, i*(Math.PI/4), wp); }
-        if(wp.type === 'rap') { player.rel = -200; } // Скорострельность
+        if(wp.type === 'rap') { player.rel = -300; }
         if(wp.type === 'single') { for(let i=0; i<12; i++) spawnBullet(player.x, player.y, i*(Math.PI/6), wp); }
-        if(wp.type === 'melee') { player.dmgM *= 5; setTimeout(()=>player.dmgM /= 5, 3000); }
-        if(wp.type === 'laser') { for(let i=0; i<20; i++) spawnBullet(player.x, player.y, Math.random()*Math.PI*2, wp); }
-
-        kills = 0; superCooldown = 600; // ~10 сек при 60fps
-        updateUI();
+        if(wp.type === 'melee') { player.dmgM *= 4; setTimeout(()=>player.dmgM /= 4, 4000); }
+        if(wp.type === 'laser') { for(let i=0; i<25; i++) spawnBullet(player.x, player.y, Math.random()*Math.PI*2, wp); }
+        kills = 0; superCooldown = 600; updateUI();
     }
 
     function spawnBullet(x, y, ang, wp) {
@@ -110,40 +108,30 @@
     class Enemy {
         constructor(x, y, type) {
             this.x = x; this.y = y; this.type = type; this.active = true;
-            this.hp = (type==='titan'? 800 : 50) + (currentRoom * 15);
-            this.maxHp = this.hp; this.s = type==='titan'? 70 : 25;
+            this.hp = (type==='titan'? 900 : 50) + (currentRoom * 18);
+            this.maxHp = this.hp; this.s = type==='titan'? 75 : 28;
             this.speed = type==='titan'? 0.7 : 1.8 + Math.random();
         }
         update() {
             let dx = player.x-this.x, dy = player.y-this.y, d = Math.hypot(dx,dy);
-            let vx = (dx/d)*this.speed, vy = (dy/d)*this.speed;
-            if(!checkWall(this.x + vx, this.y + vy, this.s/2)) { this.x += vx; this.y += vy; }
-            if(d < player.r + this.s/2) player.hp -= 0.4;
+            this.x += (dx/d)*this.speed; this.y += (dy/d)*this.speed;
+            if(d < player.r + this.s/2) player.hp -= 0.35;
         }
         draw() {
-            ctx.fillStyle = this.type==='titan'?'#c0392b':'#7f8c8d';
+            ctx.fillStyle = this.type==='titan'?'#d63031':'#b2bec3';
             ctx.fillRect(this.x-this.s/2, this.y-this.s/2, this.s, this.s);
+            ctx.strokeStyle = "#2d3436"; ctx.lineWidth = 1; ctx.strokeRect(this.x-this.s/2, this.y-this.s/2, this.s, this.s);
         }
-    }
-
-    function checkWall(x, y, r) {
-        return walls.some(w => x+r > w.x && x-r < w.x+w.w && y+r > w.y && y-r < w.y+w.h);
     }
 
     function startRoom() {
         isShopOpen = false; document.getElementById('shop-overlay').style.display='none';
-        player.x = 50; player.y = 50;
-        bullets = []; enemies = []; parts = []; walls = [];
-        
-        // Генерация стен
-        for(let i=0; i<5; i++) {
-            walls.push({ x: Math.random()*(w-200)+100, y: Math.random()*(h-200)+100, w: 40+Math.random()*100, h: 40+Math.random()*100 });
-        }
-
-        let count = 3 + currentRoom;
+        player.x = w/2; player.y = h/2;
+        bullets = []; enemies = []; parts = [];
+        let count = 4 + currentRoom;
         for(let i=0; i<count; i++) {
             let ex, ey;
-            do { ex=Math.random()*w; ey=Math.random()*h; } while(Math.hypot(ex-player.x, ey-player.y)<200 || checkWall(ex, ey, 20));
+            do { ex=Math.random()*w; ey=Math.random()*h; } while(Math.hypot(ex-player.x, ey-player.y)<250);
             enemies.push(new Enemy(ex, ey, (i===0 && currentRoom > 4)?'titan':'norm'));
         }
         updateUI();
@@ -152,9 +140,9 @@
     function buy(t) {
         if(coins >= upgrades[t].cost) {
             coins -= upgrades[t].cost;
-            if(t==='hp') { player.maxHp += 25; player.hp = player.maxHp; } // НЕРФ: +25
+            if(t==='hp') { player.maxHp += 25; player.hp = player.maxHp; }
             if(t==='dmg') { player.dmgM += 0.3; }
-            upgrades[t].cost += 40;
+            upgrades[t].cost += 45;
             updateUI(); updateShopUI();
         }
     }
@@ -169,62 +157,53 @@
         document.getElementById('coins').innerText = coins;
         document.getElementById('roomNum').innerText = currentRoom;
         document.getElementById('killsNeeded').innerText = Math.max(0, 5 - kills);
-        
         const btn = document.getElementById('super-btn');
-        if(kills >= 5 && superCooldown <= 0) {
-            btn.classList.add('ready'); btn.innerText = "SUPER READY!";
-        } else {
-            btn.classList.remove('ready');
-            btn.innerText = superCooldown > 0 ? `WAIT ${Math.ceil(superCooldown/60)}s` : "CHARGING...";
-        }
+        if(kills >= 5 && superCooldown <= 0) { btn.classList.add('ready'); btn.innerText = "READY!"; } 
+        else { btn.classList.remove('ready'); btn.innerText = superCooldown > 0 ? `КД ${Math.ceil(superCooldown/60)}с` : "ЗАРЯД..."; }
     }
 
     function loop() {
         if(isGameOver || isShopOpen) { requestAnimationFrame(loop); return; }
-        ctx.fillStyle = '#0a0a0a'; ctx.fillRect(0,0,w,h);
+        ctx.fillStyle = '#f0f2f5'; ctx.fillRect(0,0,w,h);
         
-        if(superCooldown > 0) { superCooldown--; if(superCooldown === 0) updateUI(); }
+        // Сетка для вида
+        ctx.strokeStyle = '#dfe6e9'; ctx.lineWidth = 1;
+        for(let i=0; i<w; i+=50) { ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,h); ctx.stroke(); }
+        for(let i=0; i<h; i+=50) { ctx.beginPath(); ctx.moveTo(0,i); ctx.lineTo(w,i); ctx.stroke(); }
 
-        // Стены
-        ctx.fillStyle = '#2c3e50';
-        walls.forEach(wl => ctx.fillRect(wl.x, wl.y, wl.w, wl.h));
+        if(superCooldown > 0) { superCooldown--; if(superCooldown === 0) updateUI(); }
 
         // Игрок
         if(input.move.active) {
-            let nx = player.x + input.move.x*player.speed;
-            let ny = player.y + input.move.y*player.speed;
-            if(!checkWall(nx, player.y, player.r)) player.x = nx;
-            if(!checkWall(player.x, ny, player.r)) player.y = ny;
+            player.x = Math.max(player.r, Math.min(w-player.r, player.x + input.move.x*player.speed));
+            player.y = Math.max(player.r, Math.min(h-player.r, player.y + input.move.y*player.speed));
         }
-        ctx.fillStyle = '#3498db'; ctx.beginPath(); ctx.arc(player.x, player.y, player.r, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#0984e3'; ctx.beginPath(); ctx.arc(player.x, player.y, player.r, 0, Math.PI*2); ctx.fill();
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.stroke();
 
-        // Стрельба (автоматическая по направлению движения или джойстика)
+        // Стрельба
         if(player.rel > 0) player.rel--;
-        if(input.move.active && player.rel <= 0) {
+        if(input.shoot.active && player.rel <= 0) {
             let wp = WEAPONS[player.wIdx];
-            let ang = Math.atan2(input.move.y, input.move.x);
             if(wp.type === 'melee') {
-                parts.push({x:player.x, y:player.y, ang, r:wp.range, arc:wp.arc, life:5});
+                parts.push({x:player.x, y:player.y, ang:input.shoot.ang, r:wp.range, arc:wp.arc, life:5});
                 enemies.forEach(e => {
                     let d = Math.hypot(e.x-player.x, e.y-player.y);
-                    if(d < wp.range && Math.abs(ang - Math.atan2(e.y-player.y, e.x-player.x)) < wp.arc) {
-                        e.hp -= wp.dmg * player.dmgM;
-                    }
+                    if(d < wp.range && Math.abs(input.shoot.ang - Math.atan2(e.y-player.y, e.x-player.x)) < wp.arc) e.hp -= wp.dmg * player.dmgM;
                 });
-            } else {
-                spawnBullet(player.x, player.y, ang, wp);
-            }
+            } else spawnBullet(player.x, player.y, input.shoot.ang, wp);
             player.rel = wp.delay;
         }
 
         // Пули
         bullets.forEach((b, i) => {
             b.x += b.vx; b.y += b.vy;
-            if(checkWall(b.x, b.y, 5)) {
-                if(b.bounces > 0) { b.vx *= -1; b.bounces--; } else b.active = false;
+            if(b.x<0 || b.x>w || b.y<0 || b.y>h) {
+                if(b.bounces > 0) { 
+                    if(b.x<0 || b.x>w) b.vx *= -1; else b.vy *= -1; 
+                    b.bounces--; 
+                } else b.active = false;
             }
-            if(b.x<0 || b.x>w || b.y<0 || b.y>h) b.active = false;
-
             enemies.forEach(e => {
                 if(Math.hypot(b.x-e.x, b.y-e.y) < e.s/2 + 5) {
                     if(b.wp.type === 'exp') {
@@ -239,43 +218,63 @@
         // Враги
         enemies.forEach((e, i) => {
             e.update(); e.draw();
-            if(e.hp <= 0) {
-                coins += (e.type==='titan'? 70 : 10); // НЕРФ ДЕНЕГ
-                kills++; enemies.splice(i, 1); updateUI();
-            }
+            if(e.hp <= 0) { coins += (e.type==='titan'? 60 : 12); kills++; enemies.splice(i, 1); updateUI(); }
         });
 
-        // Эффекты
+        // Эффекты взмаха
         parts.forEach((p, i) => {
-            ctx.strokeStyle = 'rgba(255,255,255,0.3)'; ctx.lineWidth = 5;
+            ctx.strokeStyle = 'rgba(0,0,0,0.1)'; ctx.lineWidth = 10;
             ctx.beginPath(); ctx.arc(p.x, p.y, p.r, p.ang-p.arc, p.ang+p.arc); ctx.stroke();
             p.life--; if(p.life <= 0) parts.splice(i, 1);
         });
 
         if(enemies.length === 0) { isShopOpen = true; document.getElementById('shop-overlay').style.display='flex'; updateShopUI(); }
-        if(player.hp <= 0) { alert("ПОРАЖЕНИЕ. Собрано монет: " + coins); location.reload(); }
+        if(player.hp <= 0) { alert("КОНЕЦ ИГРЫ! Собрано монет: " + coins); location.reload(); }
         requestAnimationFrame(loop);
     }
 
     function closeShop() { currentRoom++; if(currentRoom > 10) alert("ПОБЕДА!"); else startRoom(); }
 
-    // Управление (упрощенный джойстик)
+    // Управление
+    const jL = document.getElementById('j-left'), jR = document.getElementById('j-right');
+    let tLId = null, tRId = null, sL = {x:0,y:0}, sR = {x:0,y:0};
+
     window.addEventListener('touchstart', e => {
-        let t = e.touches[0]; if(t.target.tagName === 'BUTTON') return;
-        input.move.active = true;
-        document.getElementById('joystick-left').style.display = 'block';
-        document.getElementById('joystick-left').style.left = (t.clientX-40)+'px';
-        document.getElementById('joystick-left').style.top = (t.clientY-40)+'px';
-        input.sX = t.clientX; input.sY = t.clientY;
+        for(let t of e.changedTouches) {
+            if(t.target.tagName === 'BUTTON') continue;
+            if(t.clientX < w/2 && tLId === null) {
+                tLId = t.identifier; sL = {x:t.clientX, y:t.clientY};
+                jL.style.display='block'; jL.style.left=(sL.x-40)+'px'; jL.style.top=(sL.y-40)+'px';
+                input.move.active = true;
+            } else if(tRId === null) {
+                tRId = t.identifier; sR = {x:t.clientX, y:t.clientY};
+                jR.style.display='block'; jR.style.left=(sR.x-40)+'px'; jR.style.top=(sR.y-40)+'px';
+                input.shoot.active = true;
+            }
+        }
     });
+
     window.addEventListener('touchmove', e => {
-        let t = e.touches[0];
-        let dx = t.clientX - input.sX, dy = t.clientY - input.sY, d = Math.hypot(dx,dy);
-        let ang = Math.atan2(dy, dx);
-        input.move.x = Math.cos(ang); input.move.y = Math.sin(ang);
-        document.querySelector('.knob').style.transform = `translate(calc(-50% + ${Math.cos(ang)*Math.min(d,30)}px), calc(-50% + ${Math.sin(ang)*Math.min(d,30)}px))`;
+        for(let t of e.changedTouches) {
+            if(t.identifier === tLId) {
+                let dx=t.clientX-sL.x, dy=t.clientY-sL.y, d=Math.min(Math.hypot(dx,dy),40), a=Math.atan2(dy,dx);
+                input.move.x=Math.cos(a)*(d/40); input.move.y=Math.sin(a)*(d/40);
+                jL.querySelector('.knob').style.transform=`translate(calc(-50% + ${Math.cos(a)*d}px), calc(-50% + ${Math.sin(a)*d}px))`;
+            }
+            if(t.identifier === tRId) {
+                let dx=t.clientX-sR.x, dy=t.clientY-sR.y, d=Math.min(Math.hypot(dx,dy),40), a=Math.atan2(dy,dx);
+                input.shoot.ang = a;
+                jR.querySelector('.knob').style.transform=`translate(calc(-50% + ${Math.cos(a)*d}px), calc(-50% + ${Math.sin(a)*d}px))`;
+            }
+        }
+    }, {passive:false});
+
+    window.addEventListener('touchend', e => {
+        for(let t of e.changedTouches) {
+            if(t.identifier === tLId) { tLId=null; input.move.active=false; jL.style.display='none'; }
+            if(t.identifier === tRId) { tRId=null; input.shoot.active=false; jR.style.display='none'; }
+        }
     });
-    window.addEventListener('touchend', () => { input.move.active = false; document.getElementById('joystick-left').style.display='none'; });
 
     startRoom(); loop();
 </script>
