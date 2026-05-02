@@ -3,18 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Underground 10 Rooms - Buffed Bazooka</title>
+    <title>Underground RPG: 10 Rooms</title>
     <style>
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: #1a1a1a; overflow: hidden; touch-action: none; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: white; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: #0f0f0f; overflow: hidden; touch-action: none; font-family: 'Courier New', Courier, monospace; color: white; }
         canvas { display: block; }
-        #ui { position: absolute; top: 10px; left: 10px; pointer-events: none; }
-        #weapons { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; }
-        .weapon-btn { padding: 12px 18px; background: rgba(0, 0, 0, 0.7); border: 2px solid #555; color: #aaa; border-radius: 8px; font-size: 14px; font-weight: bold; transition: 0.2s; }
-        .weapon-btn.active { background: #e67e22; border-color: #f1c40f; color: white; box-shadow: 0 0 15px #e67e22; }
-        #joystick-left, #joystick-right { position: absolute; bottom: 50px; width: 120px; height: 120px; background: rgba(255, 255, 255, 0.1); border-radius: 50%; border: 2px solid rgba(255, 255, 255, 0.2); display: none; pointer-events: none; }
-        #joystick-left-knob, #joystick-right-knob { position: absolute; top: 50%; left: 50%; width: 45px; height: 45px; background: rgba(255, 255, 255, 0.4); border-radius: 50%; transform: translate(-50%, -50%); }
-        #game-over { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; background: rgba(0,0,0,0.9); padding: 40px; border-radius: 20px; display: none; border: 2px solid #e74c3c; }
-        button.restart-btn { margin-top: 20px; padding: 10px 25px; font-size: 18px; background: #2ecc71; border: none; color: white; border-radius: 5px; cursor: pointer; }
+        
+        #ui { position: absolute; top: 10px; left: 10px; pointer-events: none; text-shadow: 2px 2px #000; }
+        #money-display { color: #f1c40f; font-size: 20px; font-weight: bold; }
+
+        #weapon-dock { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); display: flex; gap: 5px; flex-wrap: wrap; justify-content: center; width: 90%; }
+        .w-btn { padding: 8px 12px; background: rgba(0,0,0,0.8); border: 1px solid #444; color: #fff; border-radius: 4px; font-size: 12px; }
+        .w-btn.active { border-color: #3498db; background: #2980b9; box-shadow: 0 0 10px #3498db; }
+
+        #shop-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 100; }
+        .shop-card { background: #2c3e50; padding: 20px; border-radius: 10px; text-align: center; margin: 10px; border: 2px solid #34495e; width: 250px; }
+        .shop-card h3 { margin: 0 0 10px 0; color: #f1c40f; }
+        .buy-btn { background: #27ae60; border: none; color: white; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .buy-btn:disabled { background: #7f8c8d; }
+        .next-btn { margin-top: 20px; padding: 15px 40px; background: #3498db; border: none; color: white; font-size: 18px; border-radius: 5px; }
+
+        #joystick-left, #joystick-right { position: absolute; bottom: 60px; width: 100px; height: 100px; background: rgba(255, 255, 255, 0.05); border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.1); display: none; pointer-events: none; }
+        .knob { position: absolute; top: 50%; left: 50%; width: 35px; height: 35px; background: rgba(255, 255, 255, 0.2); border-radius: 50%; transform: translate(-50%, -50%); }
     </style>
 </head>
 <body>
@@ -22,304 +31,379 @@
     <canvas id="gameCanvas"></canvas>
     
     <div id="ui">
-        <h2>Комната: <span id="roomNum">1</span> / 10</h2>
-        <h3 style="color: #2ecc71;">Здоровье: <span id="hp">100</span></h3>
+        <div>Комната: <span id="roomNum">1</span> / 10</div>
+        <div style="color: #2ecc71;">HP: <span id="hp">100</span></div>
+        <div id="money-display">💰 <span id="coins">0</span></div>
+        <div id="ammo-ui" style="color: #e74c3c; font-size: 14px;"></div>
     </div>
 
-    <div id="weapons">
-        <button class="weapon-btn active" onclick="changeWeapon(0)">БАЗУКА (OP)</button>
-        <button class="weapon-btn" onclick="changeWeapon(1)">Автомат</button>
-        <button class="weapon-btn" onclick="changeWeapon(2)">Пистолеты</button>
+    <div id="weapon-dock">
+        <button class="w-btn active" onclick="changeW(0)">Базука</button>
+        <button class="w-btn" onclick="changeW(1)">Автомат</button>
+        <button class="w-btn" onclick="changeW(2)">Пистолеты</button>
+        <button class="w-btn" onclick="changeW(3)">Меч</button>
+        <button class="w-btn" onclick="changeW(4)">Кинжалы</button>
+        <button class="w-btn" onclick="changeW(5)">Бластер</button>
+        <button class="w-btn" onclick="changeW(6)">Сингулярность</button>
     </div>
 
-    <div id="joystick-left"><div id="joystick-left-knob"></div></div>
-    <div id="joystick-right"><div id="joystick-right-knob"></div></div>
-
-    <div id="game-over">
-        <h1 id="go-text">ПОРАЖЕНИЕ</h1>
-        <button class="restart-btn" onclick="location.reload()">ИГРАТЬ СНОВА</button>
+    <div id="shop-overlay">
+        <h1>МАГАЗИН ПРОКАЧКИ</h1>
+        <div style="display: flex; flex-wrap: wrap; justify-content: center;">
+            <div class="shop-card">
+                <h3>+ СИЛА (Урон)</h3>
+                <p>Цена: <span id="p-dmg-cost">50</span></p>
+                <button class="buy-btn" onclick="buyUpgrade('dmg')">КУПИТЬ</button>
+            </div>
+            <div class="shop-card">
+                <h3>+ ВЫНОСЛИВОСТЬ (HP)</h3>
+                <p>Цена: <span id="p-hp-cost">40</span></p>
+                <button class="buy-btn" onclick="buyUpgrade('hp')">КУПИТЬ</button>
+            </div>
+            <div class="shop-card">
+                <h3>+ ЛОВКОСТЬ (Бег)</h3>
+                <p>Цена: <span id="p-speed-cost">60</span></p>
+                <button class="buy-btn" onclick="buyUpgrade('speed')">КУПИТЬ</button>
+            </div>
+        </div>
+        <button class="next-btn" onclick="closeShop()">В СЛЕДУЮЩУЮ КОМНАТУ →</button>
     </div>
+
+    <div id="joystick-left"><div class="knob"></div></div>
+    <div id="joystick-right"><div class="knob"></div></div>
 
 <script>
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
-    let width, height;
-    function resize() { width = window.innerWidth; height = window.innerHeight; canvas.width = width; canvas.height = height; }
+    let w, h;
+    function resize() { w = window.innerWidth; h = window.innerHeight; canvas.width = w; canvas.height = h; }
     window.addEventListener('resize', resize); resize();
 
+    // Глобальные переменные
     let currentRoom = 1;
+    let coins = 0;
     let isGameOver = false;
-    const input = { move: { x: 0, y: 0, active: false }, shoot: { x: 0, y: 0, active: false } };
+    let isShopOpen = false;
 
-    // НАСТРОЙКИ ОРУЖИЯ (Базука стала дисбалансной)
+    // Параметры игрока
+    const player = {
+        x: 0, y: 0, r: 20,
+        hp: 100, maxHp: 100,
+        baseSpeed: 4.5, dmgMult: 1,
+        weaponIdx: 0, reloadTimer: 0, ammo: 0
+    };
+
+    const upgrades = {
+        dmg: { lvl: 1, cost: 50 },
+        hp: { lvl: 1, cost: 40 },
+        speed: { lvl: 1, cost: 60 }
+    };
+
+    // Конфигурация оружия
     const WEAPONS = [
-        { name: "Базука", color: "#e67e22", speed: 8, dmg: 500, delay: 80, type: 'explosive', radius: 150 }, 
-        { name: "Автомат", color: "#f1c40f", speed: 14, dmg: 25, delay: 7, type: 'rapid' },
-        { name: "Пистолеты", color: "#3498db", speed: 12, dmg: 40, delay: 15, type: 'dual' }
+        { name: "Базука", type: "heavy", dmg: 200, delay: 120, bSpeed: 7, color: "#e67e22", expR: 180, info: "Медленно, мощно" },
+        { name: "Автомат", type: "rapid", dmg: 20, delay: 8, bSpeed: 14, color: "#f1c40f", mag: 30, rel: 90, info: "Перезарядка!" },
+        { name: "Пистолеты", type: "dual", dmg: 35, delay: 18, bSpeed: 12, color: "#3498db" },
+        { name: "Меч", type: "melee", dmg: 120, delay: 35, range: 80, arc: Math.PI * 0.8, color: "#ecf0f1" },
+        { name: "Кинжалы", type: "melee", dmg: 50, delay: 10, range: 45, arc: Math.PI * 0.4, color: "#95a5a6" },
+        { name: "Бластер", type: "laser", dmg: 30, delay: 15, bSpeed: 20, color: "#00ffcc", bounce: 2 },
+        { name: "Сингулярность", type: "gravity", dmg: 10, delay: 150, bSpeed: 4, color: "#9b59b6" }
     ];
-    let currentWeaponIndex = 0;
 
-    function changeWeapon(index) {
-        currentWeaponIndex = index;
-        document.querySelectorAll('.weapon-btn').forEach((btn, i) => btn.classList.toggle('active', i === index));
-    }
+    const input = { move: {x:0, y:0, active:false}, shoot: {x:0, y:0, active:false} };
+    let entities = { bullets: [], enemies: [], particles: [], coins: [] };
 
-    class Player {
-        constructor() {
-            this.x = width / 2; this.y = height / 2;
-            this.radius = 22; this.speed = 5;
-            this.hp = 100; this.maxHp = 100;
-            this.shootCooldown = 0;
-        }
-        draw() {
-            ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-            ctx.fillStyle = '#3498db'; ctx.fill();
-            ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.stroke();
-        }
-        update() {
-            if (this.hp <= 0) return;
-            if (input.move.active) {
-                this.x += input.move.x * this.speed; this.y += input.move.y * this.speed;
-                this.x = Math.max(this.radius, Math.min(width - this.radius, this.x));
-                this.y = Math.max(this.radius, Math.min(height - this.radius, this.y));
-            }
-            if (this.shootCooldown > 0) this.shootCooldown--;
-            
-            if (input.shoot.active && this.shootCooldown <= 0) {
-                let w = WEAPONS[currentWeaponIndex];
-                let angle = Math.atan2(input.shoot.y, input.shoot.x);
-                
-                if (w.type === 'dual') {
-                    let offsetAngle = Math.PI / 2;
-                    bullets.push(new Bullet(this.x + Math.cos(angle+offsetAngle)*10, this.y + Math.sin(angle+offsetAngle)*10, angle, w.speed, w.dmg, true, w.color));
-                    bullets.push(new Bullet(this.x - Math.cos(angle+offsetAngle)*10, this.y - Math.sin(angle+offsetAngle)*10, angle, w.speed, w.dmg, true, w.color));
-                } else {
-                    bullets.push(new Bullet(this.x, this.y, angle, w.speed, w.dmg, true, w.color, w.type, w.radius));
-                    if(w.type === 'explosive') { // Отдача от базуки
-                        this.x -= Math.cos(angle) * 20;
-                        this.y -= Math.sin(angle) * 20;
-                    }
-                }
-                this.shootCooldown = w.delay;
-            }
-        }
-    }
-
-    // Класс для эффекта взрыва
-    class Explosion {
-        constructor(x, y, maxRadius) {
-            this.x = x; this.y = y;
-            this.radius = 10;
-            this.maxRadius = maxRadius;
-            this.alpha = 1;
-            this.active = true;
-        }
-        update() {
-            this.radius += 10;
-            this.alpha -= 0.03;
-            if (this.alpha <= 0) this.active = false;
-        }
-        draw() {
-            ctx.save();
-            ctx.globalAlpha = this.alpha;
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-            ctx.strokeStyle = "white";
-            ctx.lineWidth = 5;
-            ctx.stroke();
-            ctx.fillStyle = "rgba(230, 126, 34, 0.3)";
-            ctx.fill();
-            ctx.restore();
-        }
+    function changeW(i) { 
+        player.weaponIdx = i; 
+        player.ammo = WEAPONS[i].mag || 0;
+        document.querySelectorAll('.w-btn').forEach((b,idx) => b.classList.toggle('active', idx===i));
     }
 
     class Bullet {
-        constructor(x, y, angle, speed, damage, isPlayer, color, type = 'normal', expRadius = 0) {
-            this.x = x; this.y = y;
-            this.vx = Math.cos(angle) * speed;
-            this.vy = Math.sin(angle) * speed;
-            this.damage = damage; this.isPlayer = isPlayer;
-            this.color = color; this.active = true;
-            this.type = type; this.expRadius = expRadius;
-            this.radius = (type === 'explosive') ? 10 : 4;
-        }
-        draw() {
-            ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-            ctx.fillStyle = this.color; ctx.fill();
-            if(this.type === 'explosive') {
-                ctx.shadowBlur = 15; ctx.shadowColor = this.color;
-            }
+        constructor(x, y, ang, wp, isPl) {
+            this.x = x; this.y = y; this.ang = ang;
+            this.wp = wp; this.isPl = isPl;
+            this.vx = Math.cos(ang) * wp.bSpeed;
+            this.vy = Math.sin(ang) * wp.bSpeed;
+            this.active = true; this.life = 200;
+            this.bounces = wp.bounce || 0;
         }
         update() {
             this.x += this.vx; this.y += this.vy;
-            if (this.x < 0 || this.x > width || this.y < 0 || this.y > height) this.active = false;
+            if (this.bounces > 0) {
+                if (this.x < 0 || this.x > w) { this.vx *= -1; this.bounces--; }
+                if (this.y < 0 || this.y > h) { this.vy *= -1; this.bounces--; }
+            } else if (this.x<0 || this.x>w || this.y<0 || this.y>h) this.active = false;
+            
+            if (this.wp.type === 'gravity') {
+                entities.enemies.forEach(e => {
+                    let d = Math.hypot(e.x - this.x, e.y - this.y);
+                    if (d < 150) {
+                        e.x += (this.x - e.x) * 0.05;
+                        e.y += (this.y - e.y) * 0.05;
+                    }
+                });
+                this.life--;
+                if (this.life < 150) { // Взрыв в конце
+                    this.active = false;
+                    createExplosion(this.x, this.y, 200, 300);
+                }
+            }
+        }
+        draw() {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, (this.wp.type==='heavy'?12:5), 0, Math.PI*2);
+            ctx.fillStyle = this.wp.color;
+            ctx.fill();
+            if(this.wp.type==='laser') {
+                ctx.shadowBlur = 10; ctx.shadowColor = this.wp.color;
+            }
         }
     }
 
     class Enemy {
         constructor(x, y, type) {
-            this.x = x; this.y = y; this.size = 32;
-            this.type = type; this.active = true; this.shootTimer = 0;
-            if (type === 'sword') { this.hp = 60; this.speed = 2.8; this.color = '#e74c3c'; }
-            else if (type === 'pistol') { this.hp = 50; this.speed = 1.5; this.color = '#2ecc71'; }
-            else if (type === 'rifle') { this.hp = 200; this.speed = 1; this.color = '#7f8c8d'; }
-        }
-        draw() {
-            ctx.fillStyle = this.color;
-            ctx.fillRect(this.x - this.size/2, this.y - this.size/2, this.size, this.size);
-            ctx.fillStyle = 'red'; ctx.fillRect(this.x - this.size/2, this.y - this.size/2 - 10, this.size, 5);
-            ctx.fillStyle = '#2ecc71';
-            let maxH = (this.type === 'rifle' ? 200 : (this.type === 'sword' ? 60 : 50));
-            ctx.fillRect(this.x - this.size/2, this.y - this.size/2 - 10, this.size * (this.hp/maxH), 5);
+            this.x = x; this.y = y; this.type = type;
+            this.active = true; this.t = 0;
+            if (type === 'titan') {
+                this.hp = 1200 + (currentRoom * 200); this.s = 80; this.speed = 0.8; this.color = '#c0392b';
+            } else {
+                this.hp = 60 + (currentRoom * 20); this.s = 30; this.speed = 2 + Math.random(); this.color = '#bdc3c7';
+            }
+            this.maxHp = this.hp;
         }
         update() {
             let dx = player.x - this.x, dy = player.y - this.y, dist = Math.hypot(dx, dy);
-            if (dist > 0 && (this.type === 'sword' || dist > 250)) {
-                this.x += (dx / dist) * this.speed; this.y += (dy / dist) * this.speed;
-            }
-            if (dist < player.radius + this.size/2 && this.type === 'sword') {
-                player.hp -= 0.4; updateUI();
-            }
-            if (this.type !== 'sword') {
-                this.shootTimer--;
-                if (this.shootTimer <= 0 && dist < 500) {
-                    let angle = Math.atan2(dy, dx);
-                    bullets.push(new Bullet(this.x, this.y, angle, 6, 10, false, '#ff4757'));
-                    this.shootTimer = this.type === 'rifle' ? 35 : 80;
+            this.x += (dx/dist) * this.speed;
+            this.y += (dy/dist) * this.speed;
+            if (dist < player.r + this.s/2) player.hp -= 0.5;
+            
+            if (this.type === 'titan' && Math.random() < 0.02) {
+                for(let a=0; a<Math.PI*2; a+=Math.PI/4) {
+                    entities.bullets.push(new Bullet(this.x, this.y, a, {bSpeed:4, color:'#f1c40f', dmg:15}, false));
                 }
             }
         }
+        draw() {
+            ctx.fillStyle = this.color;
+            ctx.fillRect(this.x - this.s/2, this.y - this.s/2, this.s, this.s);
+            ctx.fillStyle = 'red'; ctx.fillRect(this.x-this.s/2, this.y-this.s/2-10, this.s, 4);
+            ctx.fillStyle = '#2ecc71'; ctx.fillRect(this.x-this.s/2, this.y-this.s/2-10, this.s*(this.hp/this.maxHp), 4);
+        }
     }
 
-    let player = new Player();
-    let bullets = [];
-    let enemies = [];
-    let explosions = [];
+    function createExplosion(x, y, r, dmg) {
+        entities.particles.push({x, y, r:0, maxR:r, alpha:1});
+        entities.enemies.forEach(e => {
+            let d = Math.hypot(e.x - x, e.y - y);
+            if (d < r) e.hp -= dmg * (1 - d/r);
+        });
+    }
+
+    function buyUpgrade(type) {
+        let up = upgrades[type];
+        if (coins >= up.cost) {
+            coins -= up.cost;
+            up.lvl++;
+            up.cost = Math.floor(up.cost * 1.5);
+            if (type === 'hp') { player.maxHp += 50; player.hp = player.maxHp; }
+            if (type === 'dmg') player.dmgMult += 0.3;
+            if (type === 'speed') player.baseSpeed += 0.5;
+            updateShopUI();
+            updateUI();
+        }
+    }
+
+    function updateShopUI() {
+        document.getElementById('p-dmg-cost').innerText = upgrades.dmg.cost;
+        document.getElementById('p-hp-cost').innerText = upgrades.hp.cost;
+        document.getElementById('p-speed-cost').innerText = upgrades.speed.cost;
+        document.querySelectorAll('.buy-btn').forEach((btn, i) => {
+            let type = ['dmg','hp','speed'][i];
+            btn.disabled = coins < upgrades[type].cost;
+        });
+    }
 
     function startRoom() {
-        enemies = []; bullets = []; explosions = [];
-        player.hp = Math.min(player.maxHp, player.hp + 20); // Немного хилим при входе
-        updateUI();
-        let count = currentRoom + 3;
-        for (let i = 0; i < count; i++) {
-            let x, y;
-            do { x = Math.random() * width; y = Math.random() * height; } while (Math.hypot(x - player.x, y - player.y) < 300);
-            let t = 'sword';
-            if (currentRoom > 2) t = Math.random() > 0.5 ? 'pistol' : 'sword';
-            if (currentRoom > 5) t = Math.random() > 0.7 ? 'rifle' : t;
-            enemies.push(new Enemy(x, y, t));
+        isShopOpen = false;
+        document.getElementById('shop-overlay').style.display = 'none';
+        player.x = w/2; player.y = h/2;
+        entities = { bullets:[], enemies:[], particles:[], coins:[] };
+        
+        let count = 4 + currentRoom * 2;
+        for (let i=0; i<count; i++) {
+            let ex, ey;
+            do { ex = Math.random()*w; ey = Math.random()*h; } while(Math.hypot(ex-player.x, ey-player.y) < 300);
+            entities.enemies.push(new Enemy(ex, ey, (i===0 && currentRoom > 3)?'titan':'normal'));
         }
+        updateUI();
     }
 
     function updateUI() {
-        document.getElementById('hp').innerText = Math.max(0, Math.floor(player.hp));
+        document.getElementById('hp').innerText = Math.floor(player.hp);
+        document.getElementById('coins').innerText = coins;
         document.getElementById('roomNum').innerText = currentRoom;
-        if (player.hp <= 0) { isGameOver = true; document.getElementById('game-over').style.display = 'block'; }
+        let wp = WEAPONS[player.weaponIdx];
+        document.getElementById('ammo-ui').innerText = wp.mag ? `AMMO: ${player.ammo} / ${wp.mag}` : "";
     }
 
     function loop() {
-        if (!isGameOver) {
-            ctx.fillStyle = '#1a1a1a'; ctx.fillRect(0, 0, width, height);
-            ctx.strokeStyle = '#222';
-            for(let i=0; i<width; i+=60) { ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,height); ctx.stroke(); }
-            for(let i=0; i<height; i+=60) { ctx.beginPath(); ctx.moveTo(0,i); ctx.lineTo(width,i); ctx.stroke(); }
+        if (isGameOver || isShopOpen) { requestAnimationFrame(loop); return; }
 
-            player.update(); player.draw();
+        ctx.fillStyle = '#0f0f0f'; ctx.fillRect(0,0,w,h);
+        
+        // Сетка пола
+        ctx.strokeStyle = '#1a1a1a';
+        for(let i=0; i<w; i+=50) { ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,h); ctx.stroke(); }
 
-            // Обработка взрывов (визуально)
-            for(let i=explosions.length-1; i>=0; i--) {
-                explosions[i].update(); explosions[i].draw();
-                if(!explosions[i].active) explosions.splice(i, 1);
-            }
+        // Игрок
+        if (input.move.active) {
+            player.x += input.move.x * player.baseSpeed;
+            player.y += input.move.y * player.baseSpeed;
+        }
+        ctx.beginPath(); ctx.arc(player.x, player.y, player.r, 0, Math.PI*2);
+        ctx.fillStyle = '#3498db'; ctx.fill();
 
-            for (let i = bullets.length - 1; i >= 0; i--) {
-                let b = bullets[i]; b.update(); b.draw();
-                if (!b.active) { bullets.splice(i, 1); continue; }
+        // Стрельба / Атака
+        if (player.reloadTimer > 0) player.reloadTimer--;
+        
+        if (input.shoot.active && player.reloadTimer <= 0) {
+            let wp = WEAPONS[player.weaponIdx];
+            let ang = Math.atan2(input.shoot.y, input.shoot.x);
 
-                if (!b.isPlayer) {
-                    if (Math.hypot(player.x - b.x, player.y - b.y) < player.radius + b.radius) {
-                        player.hp -= b.damage; b.active = false; updateUI();
+            if (wp.type === 'melee') {
+                // Визуал взмаха
+                entities.particles.push({x:player.x, y:player.y, ang, arc:wp.arc, r:wp.range, life:5, type:'slash'});
+                entities.enemies.forEach(e => {
+                    let d = Math.hypot(e.x - player.x, e.y - player.y);
+                    let a = Math.atan2(e.y - player.y, e.x - player.x);
+                    let diff = Math.abs(ang - a);
+                    if (d < wp.range && (diff < wp.arc/2 || diff > Math.PI*2 - wp.arc/2)) {
+                        e.hp -= wp.dmg * player.dmgMult;
+                        e.x += Math.cos(a) * 20; e.y += Math.sin(a) * 20; // Отброс
                     }
+                });
+            } else {
+                if (wp.mag && player.ammo <= 0) {
+                    player.reloadTimer = wp.rel; player.ammo = wp.mag;
                 } else {
-                    for (let j = enemies.length - 1; j >= 0; j--) {
-                        let e = enemies[j];
-                        if (Math.abs(b.x - e.x) < e.size/2 + b.radius && Math.abs(b.y - e.y) < e.size/2 + b.radius) {
-                            if (b.type === 'explosive') {
-                                explosions.push(new Explosion(b.x, b.y, b.expRadius)); // Создаем волну
-                                enemies.forEach(en => {
-                                    let d = Math.hypot(en.x - b.x, en.y - b.y);
-                                    if (d < b.expRadius) en.hp -= b.damage * (1 - d/b.expRadius);
-                                });
-                            } else { e.hp -= b.damage; }
-                            b.active = false; break;
-                        }
-                    }
+                    entities.bullets.push(new Bullet(player.x, player.y, ang, wp, true));
+                    if (wp.mag) player.ammo--;
+                    if (wp.type === 'heavy') createExplosion(player.x, player.y, 40, 0); // Мини волна у ствола
                 }
             }
-
-            let anyAlive = false;
-            for (let i = enemies.length - 1; i >= 0; i--) {
-                if (enemies[i].hp <= 0) { enemies.splice(i, 1); continue; }
-                enemies[i].update(); enemies[i].draw();
-                anyAlive = true;
-            }
-
-            if (!anyAlive) {
-                currentRoom++;
-                if (currentRoom > 10) {
-                    isGameOver = true;
-                    document.getElementById('go-text').innerText = "ПОБЕДА!";
-                    document.getElementById('go-text').style.color = "#2ecc71";
-                    document.getElementById('game-over').style.display = 'block';
-                } else { startRoom(); }
-            }
+            player.reloadTimer = wp.delay;
+            updateUI();
         }
+
+        // Пули и коллизии
+        entities.bullets.forEach((b, i) => {
+            b.update(); b.draw();
+            if (!b.active) return;
+
+            if (b.isPl) {
+                entities.enemies.forEach(e => {
+                    if (Math.hypot(b.x-e.x, b.y-e.y) < e.s/2 + 5) {
+                        if (b.wp.type === 'heavy') {
+                            createExplosion(b.x, b.y, b.wp.expR, b.wp.dmg * player.dmgMult);
+                        } else {
+                            e.hp -= b.wp.dmg * player.dmgMult;
+                        }
+                        b.active = false;
+                    }
+                });
+            } else {
+                if (Math.hypot(b.x-player.x, b.y-player.y) < player.r) {
+                    player.hp -= b.wp.dmg; b.active = false; updateUI();
+                }
+            }
+        });
+        entities.bullets = entities.bullets.filter(b => b.active);
+
+        // Враги
+        entities.enemies.forEach((e, i) => {
+            e.update(); e.draw();
+            if (e.hp <= 0) {
+                coins += (e.type==='titan'?150:20);
+                entities.enemies.splice(i, 1);
+                updateUI();
+            }
+        });
+
+        // Частицы и взрывы
+        entities.particles.forEach((p, i) => {
+            if (p.type === 'slash') {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.r, p.ang - p.arc/2, p.ang + p.arc/2);
+                ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 10; ctx.stroke();
+                p.life--;
+            } else {
+                p.r += 15; p.alpha -= 0.05;
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+                ctx.strokeStyle = `rgba(255,255,255,${p.alpha})`; ctx.stroke();
+            }
+            if (p.alpha <= 0 || p.life <= 0) entities.particles.splice(i, 1);
+        });
+
+        // Проверка победы в комнате
+        if (entities.enemies.length === 0) {
+            isShopOpen = true;
+            document.getElementById('shop-overlay').style.display = 'flex';
+            updateShopUI();
+        }
+
+        if (player.hp <= 0) { isGameOver = true; alert("GAME OVER! Дошли до " + currentRoom + " комнаты"); location.reload(); }
+
         requestAnimationFrame(loop);
     }
 
-    // Джойстики
-    const jL = document.getElementById('joystick-left'), jLK = document.getElementById('joystick-left-knob');
-    const jR = document.getElementById('joystick-right'), jRK = document.getElementById('joystick-right-knob');
+    function closeShop() {
+        currentRoom++;
+        if (currentRoom > 10) alert("ПОБЕДА! ВЫ ВЫШЛИ НА ПОВЕРХНОСТЬ!");
+        else startRoom();
+    }
+
+    // Управление
+    const jL = document.getElementById('joystick-left'), jLK = jL.querySelector('.knob');
+    const jR = document.getElementById('joystick-right'), jRK = jR.querySelector('.knob');
     let tLId = null, tRId = null, sL = {x:0, y:0}, sR = {x:0, y:0};
 
-    window.addEventListener('touchstart', (e) => {
-        for (let i = 0; i < e.changedTouches.length; i++) {
-            let t = e.changedTouches[i];
+    window.addEventListener('touchstart', e => {
+        for(let t of e.changedTouches) {
             if(t.target.tagName === 'BUTTON') continue;
-            if (t.clientX < width/2 && tLId === null) {
+            if(t.clientX < w/2 && tLId === null) {
                 tLId = t.identifier; sL = {x:t.clientX, y:t.clientY};
-                jL.style.display = 'block'; jL.style.left = (sL.x-60)+'px'; jL.style.top = (sL.y-60)+'px';
+                jL.style.display='block'; jL.style.left=(sL.x-50)+'px'; jL.style.top=(sL.y-50)+'px';
                 input.move.active = true;
-            } else if (tRId === null) {
+            } else if(tRId === null) {
                 tRId = t.identifier; sR = {x:t.clientX, y:t.clientY};
-                jR.style.display = 'block'; jR.style.left = (sR.x-60)+'px'; jR.style.top = (sR.y-60)+'px';
+                jR.style.display='block'; jR.style.left=(sR.x-50)+'px'; jR.style.top=(sR.y-50)+'px';
                 input.shoot.active = true;
             }
         }
     });
 
-    window.addEventListener('touchmove', (e) => {
+    window.addEventListener('touchmove', e => {
         e.preventDefault();
-        for (let i = 0; i < e.changedTouches.length; i++) {
-            let t = e.changedTouches[i];
-            if (t.identifier === tLId) {
-                let dx = t.clientX - sL.x, dy = t.clientY - sL.y, dist = Math.min(Math.hypot(dx, dy), 60), ang = Math.atan2(dy, dx);
-                input.move.x = Math.cos(ang) * (dist/60); input.move.y = Math.sin(ang) * (dist/60);
-                jLK.style.transform = `translate(calc(-50% + ${Math.cos(ang)*dist}px), calc(-50% + ${Math.sin(ang)*dist}px))`;
+        for(let t of e.changedTouches) {
+            if(t.identifier === tLId) {
+                let dx=t.clientX-sL.x, dy=t.clientY-sL.y, d=Math.min(Math.hypot(dx,dy),50), a=Math.atan2(dy,dx);
+                input.move.x=Math.cos(a)*(d/50); input.move.y=Math.sin(a)*(d/50);
+                jLK.style.transform=`translate(calc(-50% + ${Math.cos(a)*d}px), calc(-50% + ${Math.sin(a)*d}px))`;
             }
-            if (t.identifier === tRId) {
-                let dx = t.clientX - sR.x, dy = t.clientY - sR.y, dist = Math.min(Math.hypot(dx, dy), 60), ang = Math.atan2(dy, dx);
-                input.shoot.x = Math.cos(ang); input.shoot.y = Math.sin(ang);
-                jRK.style.transform = `translate(calc(-50% + ${Math.cos(ang)*dist}px), calc(-50% + ${Math.sin(ang)*dist}px))`;
+            if(t.identifier === tRId) {
+                let dx=t.clientX-sR.x, dy=t.clientY-sR.y, a=Math.atan2(dy,dx);
+                input.shoot.x=Math.cos(a); input.shoot.y=Math.sin(a);
+                let d=Math.min(Math.hypot(dx,dy),50);
+                jRK.style.transform=`translate(calc(-50% + ${Math.cos(a)*d}px), calc(-50% + ${Math.sin(a)*d}px))`;
             }
         }
-    }, {passive: false});
+    }, {passive:false});
 
-    window.addEventListener('touchend', (e) => {
-        for (let i = 0; i < e.changedTouches.length; i++) {
-            let t = e.changedTouches[i];
-            if (t.identifier === tLId) { tLId = null; input.move.active = false; jL.style.display = 'none'; }
-            if (t.identifier === tRId) { tRId = null; input.shoot.active = false; jR.style.display = 'none'; }
+    window.addEventListener('touchend', e => {
+        for(let t of e.changedTouches) {
+            if(t.identifier === tLId) { tLId=null; input.move.active=false; jL.style.display='none'; }
+            if(t.identifier === tRId) { tRId=null; input.shoot.active=false; jR.style.display='none'; }
         }
     });
 
