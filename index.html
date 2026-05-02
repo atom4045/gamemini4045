@@ -3,26 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Underground: Light & Fixed</title>
+    <title>Underground: Final Fix</title>
     <style>
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: #f0f2f5; overflow: hidden; touch-action: none; font-family: 'Segoe UI', sans-serif; color: #333; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: #f0f2f5; overflow: hidden; touch-action: none; font-family: sans-serif; color: #333; }
         canvas { display: block; }
-        
-        #ui { position: absolute; top: 10px; left: 10px; pointer-events: none; background: rgba(255,255,255,0.7); padding: 10px; border-radius: 8px; border: 1px solid #ccc; }
+        #ui { position: absolute; top: 10px; left: 10px; pointer-events: none; background: rgba(255,255,255,0.8); padding: 10px; border-radius: 8px; border: 1px solid #ccc; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         #money-display { color: #d35400; font-weight: bold; }
-        
         #weapon-dock { position: absolute; bottom: 85px; left: 50%; transform: translateX(-50%); display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; width: 95%; }
         .w-btn { padding: 6px 10px; background: #fff; border: 2px solid #ddd; color: #333; border-radius: 6px; font-size: 11px; font-weight: bold; }
         .w-btn.active { border-color: #e74c3c; background: #ffeaa7; }
-
         #super-btn { position: absolute; bottom: 20px; right: 20px; width: 70px; height: 70px; border-radius: 50%; background: #dfe6e9; border: 4px solid #b2bec3; color: #636e72; font-weight: bold; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 11px; transition: 0.3s; }
         #super-btn.ready { background: #fdcb6e; border-color: #f1c40f; color: #000; box-shadow: 0 0 15px rgba(241,196,15,0.5); cursor: pointer; }
-
         #shop-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.95); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 100; }
-        .shop-card { background: #fff; padding: 15px; border-radius: 12px; text-align: center; margin: 5px; border: 2px solid #dfe6e9; width: 180px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .shop-card { background: #fff; padding: 15px; border-radius: 12px; text-align: center; margin: 5px; border: 2px solid #dfe6e9; width: 180px; }
         .buy-btn { background: #2ecc71; border: none; color: white; padding: 10px; border-radius: 6px; width: 100%; margin-top: 5px; font-weight: bold; }
-        .buy-btn:disabled { background: #bdc3c7; }
-        
         .joystick { position: absolute; width: 80px; height: 80px; background: rgba(0,0,0,0.1); border-radius: 50%; border: 2px solid rgba(0,0,0,0.15); display: none; }
         .knob { position: absolute; top: 50%; left: 50%; width: 30px; height: 30px; background: rgba(0,0,0,0.3); border-radius: 50%; transform: translate(-50%, -50%); }
     </style>
@@ -35,10 +29,10 @@
         <div style="font-weight: bold;">Комната: <span id="roomNum">1</span> / 10</div>
         <div style="color: #e74c3c; font-weight: bold;">HP: <span id="hp">100</span></div>
         <div id="money-display">💰 <span id="coins">0</span></div>
-        <div id="kill-ui" style="font-size: 12px;">Заряжаем Супер: <span id="killsNeeded">5</span></div>
+        <div id="kill-ui" style="font-size: 12px;">До СУПЕР: <span id="killsNeeded">5</span></div>
     </div>
 
-    <button id="super-btn" onclick="activateSuper()">SUPER NOT READY</button>
+    <button id="super-btn" onclick="activateSuper()">ЗАРЯД...</button>
 
     <div id="weapon-dock">
         <button class="w-btn active" onclick="changeW(0)">Базука</button>
@@ -51,12 +45,12 @@
     </div>
 
     <div id="shop-overlay">
-        <h2 style="color: #2d3436;">УЛУЧШЕНИЯ</h2>
+        <h2>ПЕРЕДЫШКА</h2>
         <div style="display: flex; flex-wrap: wrap; justify-content: center;">
-            <div class="shop-card"><h4>УРОН (+30%)</h4><p>Цена: <span id="c-dmg">60</span></p><button class="buy-btn" onclick="buy('dmg')">КУПИТЬ</button></div>
-            <div class="shop-card"><h4>ЖИЗНЬ (+25)</h4><p>Цена: <span id="c-hp">50</span></p><button class="buy-btn" onclick="buy('hp')">КУПИТЬ</button></div>
+            <div class="shop-card"><h4>УРОН (+30%)</h4><p>💰 <span id="c-dmg">60</span></p><button class="buy-btn" onclick="buy('dmg')">КУПИТЬ</button></div>
+            <div class="shop-card"><h4>ХП (+25)</h4><p>💰 <span id="c-hp">50</span></p><button class="buy-btn" onclick="buy('hp')">КУПИТЬ</button></div>
         </div>
-        <button style="margin-top:20px; padding: 12px 40px; background: #3498db; border: none; color: white; border-radius: 8px; font-weight: bold;" onclick="closeShop()">В ПУТЬ →</button>
+        <button style="margin-top:20px; padding: 12px 40px; background: #3498db; border: none; color: white; border-radius: 8px;" onclick="closeShop()">ВПЕРЕД</button>
     </div>
 
     <div id="j-left" class="joystick"><div class="knob"></div></div>
@@ -69,17 +63,15 @@
     function resize() { w = window.innerWidth; h = window.innerHeight; canvas.width = w; canvas.height = h; }
     window.addEventListener('resize', resize); resize();
 
-    let currentRoom = 1, coins = 0, isGameOver = false, isShopOpen = false;
-    let kills = 0, superCooldown = 0;
-
+    let currentRoom = 1, coins = 0, isGameOver = false, isShopOpen = false, kills = 0, superCooldown = 0;
     const player = { x: 0, y: 0, r: 18, hp: 100, maxHp: 100, speed: 4.8, dmgM: 1, wIdx: 0, rel: 0 };
     const upgrades = { dmg: { cost: 60 }, hp: { cost: 50 } };
 
     const WEAPONS = [
-        { name: "Базука", type: "exp", dmg: 85, delay: 140, bS: 6, color: "#e67e22", expR: 90 }, 
+        { name: "Базука", type: "exp", dmg: 80, delay: 140, bS: 6, color: "#e67e22", expR: 90 }, 
         { name: "Автомат", type: "rap", dmg: 16, delay: 10, bS: 12, color: "#f1c40f", mag: 25, rel: 110 },
         { name: "Пистолет", type: "single", dmg: 40, delay: 22, bS: 13, color: "#3498db" },
-        { name: "Меч", type: "melee", dmg: 60, delay: 38, range: 115, arc: 1.1, color: "#7f8c8d" },
+        { name: "Меч", type: "melee", dmg: 55, delay: 38, range: 110, arc: 1.1, color: "#95a5a6" },
         { name: "Кинжалы", type: "melee", dmg: 35, delay: 11, range: 45, arc: 0.7, color: "#2d3436" },
         { name: "Бластер", type: "laser", dmg: 65, delay: 20, bS: 17, color: "#00b894", bounce: 3 }, 
         { name: "Сингуляр", type: "grav", dmg: 4, delay: 170, bS: 3.5, color: "#6c5ce7" }
@@ -89,6 +81,10 @@
     const input = { move: {x:0, y:0, active:false}, shoot: {x:0, y:0, active:false, ang:0} };
 
     function changeW(i) { player.wIdx = i; document.querySelectorAll('.w-btn').forEach((b,idx)=>b.classList.toggle('active', idx===i)); }
+
+    function spawnBullet(x, y, ang, wp) {
+        bullets.push({ x, y, vx: Math.cos(ang)*wp.bS, vy: Math.sin(ang)*wp.bS, wp, isPl: true, bounces: wp.bounce||0, active: true });
+    }
 
     function activateSuper() {
         if (kills < 5 || superCooldown > 0) return;
@@ -101,16 +97,12 @@
         kills = 0; superCooldown = 600; updateUI();
     }
 
-    function spawnBullet(x, y, ang, wp) {
-        bullets.push({ x, y, vx: Math.cos(ang)*wp.bS, vy: Math.sin(ang)*wp.bS, wp, isPl: true, bounces: wp.bounce||0, active: true });
-    }
-
     class Enemy {
         constructor(x, y, type) {
-            this.x = x; this.y = y; this.type = type; this.active = true;
-            this.hp = (type==='titan'? 900 : 50) + (currentRoom * 18);
+            this.x = x; this.y = y; this.type = type;
+            this.hp = (type==='titan'? 900 : 50) + (currentRoom * 15);
             this.maxHp = this.hp; this.s = type==='titan'? 75 : 28;
-            this.speed = type==='titan'? 0.7 : 1.8 + Math.random();
+            this.speed = type==='titan'? 0.6 : 1.7 + Math.random();
         }
         update() {
             let dx = player.x-this.x, dy = player.y-this.y, d = Math.hypot(dx,dy);
@@ -120,7 +112,7 @@
         draw() {
             ctx.fillStyle = this.type==='titan'?'#d63031':'#b2bec3';
             ctx.fillRect(this.x-this.s/2, this.y-this.s/2, this.s, this.s);
-            ctx.strokeStyle = "#2d3436"; ctx.lineWidth = 1; ctx.strokeRect(this.x-this.s/2, this.y-this.s/2, this.s, this.s);
+            ctx.strokeStyle = "#2d3436"; ctx.strokeRect(this.x-this.s/2, this.y-this.s/2, this.s, this.s);
         }
     }
 
@@ -128,7 +120,7 @@
         isShopOpen = false; document.getElementById('shop-overlay').style.display='none';
         player.x = w/2; player.y = h/2;
         bullets = []; enemies = []; parts = [];
-        let count = 4 + currentRoom;
+        let count = 4 + Math.floor(currentRoom/2);
         for(let i=0; i<count; i++) {
             let ex, ey;
             do { ex=Math.random()*w; ey=Math.random()*h; } while(Math.hypot(ex-player.x, ey-player.y)<250);
@@ -158,7 +150,7 @@
         document.getElementById('roomNum').innerText = currentRoom;
         document.getElementById('killsNeeded').innerText = Math.max(0, 5 - kills);
         const btn = document.getElementById('super-btn');
-        if(kills >= 5 && superCooldown <= 0) { btn.classList.add('ready'); btn.innerText = "READY!"; } 
+        if(kills >= 5 && superCooldown <= 0) { btn.classList.add('ready'); btn.innerText = "ГОТОВО!"; } 
         else { btn.classList.remove('ready'); btn.innerText = superCooldown > 0 ? `КД ${Math.ceil(superCooldown/60)}с` : "ЗАРЯД..."; }
     }
 
@@ -166,22 +158,18 @@
         if(isGameOver || isShopOpen) { requestAnimationFrame(loop); return; }
         ctx.fillStyle = '#f0f2f5'; ctx.fillRect(0,0,w,h);
         
-        // Сетка для вида
-        ctx.strokeStyle = '#dfe6e9'; ctx.lineWidth = 1;
+        ctx.strokeStyle = '#dfe6e9';
         for(let i=0; i<w; i+=50) { ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,h); ctx.stroke(); }
         for(let i=0; i<h; i+=50) { ctx.beginPath(); ctx.moveTo(0,i); ctx.lineTo(w,i); ctx.stroke(); }
 
         if(superCooldown > 0) { superCooldown--; if(superCooldown === 0) updateUI(); }
 
-        // Игрок
         if(input.move.active) {
             player.x = Math.max(player.r, Math.min(w-player.r, player.x + input.move.x*player.speed));
             player.y = Math.max(player.r, Math.min(h-player.r, player.y + input.move.y*player.speed));
         }
         ctx.fillStyle = '#0984e3'; ctx.beginPath(); ctx.arc(player.x, player.y, player.r, 0, Math.PI*2); ctx.fill();
-        ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.stroke();
 
-        // Стрельба
         if(player.rel > 0) player.rel--;
         if(input.shoot.active && player.rel <= 0) {
             let wp = WEAPONS[player.wIdx];
@@ -195,9 +183,16 @@
             player.rel = wp.delay;
         }
 
-        // Пули
+        // ПУЛИ - ИСПРАВЛЕНА ОТРИСОВКА
         bullets.forEach((b, i) => {
             b.x += b.vx; b.y += b.vy;
+            
+            // Рисуем пулю
+            ctx.fillStyle = b.wp.color;
+            ctx.beginPath();
+            ctx.arc(b.x, b.y, b.wp.type === 'exp' ? 8 : 4, 0, Math.PI*2);
+            ctx.fill();
+
             if(b.x<0 || b.x>w || b.y<0 || b.y>h) {
                 if(b.bounces > 0) { 
                     if(b.x<0 || b.x>w) b.vx *= -1; else b.vy *= -1; 
@@ -215,13 +210,11 @@
         });
         bullets = bullets.filter(b => b.active);
 
-        // Враги
         enemies.forEach((e, i) => {
             e.update(); e.draw();
-            if(e.hp <= 0) { coins += (e.type==='titan'? 60 : 12); kills++; enemies.splice(i, 1); updateUI(); }
+            if(e.hp <= 0) { coins += (e.type==='titan'? 50 : 8); kills++; enemies.splice(i, 1); updateUI(); }
         });
 
-        // Эффекты взмаха
         parts.forEach((p, i) => {
             ctx.strokeStyle = 'rgba(0,0,0,0.1)'; ctx.lineWidth = 10;
             ctx.beginPath(); ctx.arc(p.x, p.y, p.r, p.ang-p.arc, p.ang+p.arc); ctx.stroke();
@@ -229,13 +222,12 @@
         });
 
         if(enemies.length === 0) { isShopOpen = true; document.getElementById('shop-overlay').style.display='flex'; updateShopUI(); }
-        if(player.hp <= 0) { alert("КОНЕЦ ИГРЫ! Собрано монет: " + coins); location.reload(); }
+        if(player.hp <= 0) { alert("ИГРА ОКОНЧЕНА!"); location.reload(); }
         requestAnimationFrame(loop);
     }
 
     function closeShop() { currentRoom++; if(currentRoom > 10) alert("ПОБЕДА!"); else startRoom(); }
 
-    // Управление
     const jL = document.getElementById('j-left'), jR = document.getElementById('j-right');
     let tLId = null, tRId = null, sL = {x:0,y:0}, sR = {x:0,y:0};
 
