@@ -3,87 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Underground 10 Rooms</title>
+    <title>Underground 10 Rooms - Buffed Bazooka</title>
     <style>
-        body, html {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            background-color: #2c3e50;
-            overflow: hidden;
-            touch-action: none; /* Отключаем скролл на мобильных */
-            font-family: Arial, sans-serif;
-            color: white;
-        }
-        canvas {
-            display: block;
-        }
-        #ui {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            pointer-events: none;
-        }
-        #weapons {
-            position: absolute;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            gap: 10px;
-        }
-        .weapon-btn {
-            padding: 10px 20px;
-            background: rgba(0, 0, 0, 0.5);
-            border: 2px solid white;
-            color: white;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: bold;
-        }
-        .weapon-btn.active {
-            background: #e74c3c;
-            border-color: #f1c40f;
-        }
-        #joystick-left, #joystick-right {
-            position: absolute;
-            bottom: 50px;
-            width: 120px;
-            height: 120px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 50%;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            display: none; /* Показываются только при касании */
-            pointer-events: none;
-        }
-        #joystick-left-knob, #joystick-right-knob {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 40px;
-            height: 40px;
-            background: rgba(255, 255, 255, 0.5);
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
-        }
-        #game-over {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center;
-            background: rgba(0,0,0,0.8);
-            padding: 30px;
-            border-radius: 15px;
-            display: none;
-        }
-        #game-over button {
-            margin-top: 15px;
-            padding: 10px 20px;
-            font-size: 18px;
-            cursor: pointer;
-        }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: #1a1a1a; overflow: hidden; touch-action: none; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: white; }
+        canvas { display: block; }
+        #ui { position: absolute; top: 10px; left: 10px; pointer-events: none; }
+        #weapons { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; }
+        .weapon-btn { padding: 12px 18px; background: rgba(0, 0, 0, 0.7); border: 2px solid #555; color: #aaa; border-radius: 8px; font-size: 14px; font-weight: bold; transition: 0.2s; }
+        .weapon-btn.active { background: #e67e22; border-color: #f1c40f; color: white; box-shadow: 0 0 15px #e67e22; }
+        #joystick-left, #joystick-right { position: absolute; bottom: 50px; width: 120px; height: 120px; background: rgba(255, 255, 255, 0.1); border-radius: 50%; border: 2px solid rgba(255, 255, 255, 0.2); display: none; pointer-events: none; }
+        #joystick-left-knob, #joystick-right-knob { position: absolute; top: 50%; left: 50%; width: 45px; height: 45px; background: rgba(255, 255, 255, 0.4); border-radius: 50%; transform: translate(-50%, -50%); }
+        #game-over { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; background: rgba(0,0,0,0.9); padding: 40px; border-radius: 20px; display: none; border: 2px solid #e74c3c; }
+        button.restart-btn { margin-top: 20px; padding: 10px 25px; font-size: 18px; background: #2ecc71; border: none; color: white; border-radius: 5px; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -92,96 +23,66 @@
     
     <div id="ui">
         <h2>Комната: <span id="roomNum">1</span> / 10</h2>
-        <h3 style="color: #2ecc71;">HP: <span id="hp">100</span></h3>
+        <h3 style="color: #2ecc71;">Здоровье: <span id="hp">100</span></h3>
     </div>
 
     <div id="weapons">
-        <button class="weapon-btn active" onclick="changeWeapon(0)">Базука</button>
+        <button class="weapon-btn active" onclick="changeWeapon(0)">БАЗУКА (OP)</button>
         <button class="weapon-btn" onclick="changeWeapon(1)">Автомат</button>
-        <button class="weapon-btn" onclick="changeWeapon(2)">2 Пистолета</button>
+        <button class="weapon-btn" onclick="changeWeapon(2)">Пистолеты</button>
     </div>
 
     <div id="joystick-left"><div id="joystick-left-knob"></div></div>
     <div id="joystick-right"><div id="joystick-right-knob"></div></div>
 
     <div id="game-over">
-        <h1 id="go-text">Вы погибли!</h1>
-        <button onclick="location.reload()">Играть снова</button>
+        <h1 id="go-text">ПОРАЖЕНИЕ</h1>
+        <button class="restart-btn" onclick="location.reload()">ИГРАТЬ СНОВА</button>
     </div>
 
 <script>
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
-
     let width, height;
-    function resize() {
-        width = window.innerWidth;
-        height = window.innerHeight;
-        canvas.width = width;
-        canvas.height = height;
-    }
-    window.addEventListener('resize', resize);
-    resize();
+    function resize() { width = window.innerWidth; height = window.innerHeight; canvas.width = width; canvas.height = height; }
+    window.addEventListener('resize', resize); resize();
 
-    // Состояние игры
     let currentRoom = 1;
     let isGameOver = false;
+    const input = { move: { x: 0, y: 0, active: false }, shoot: { x: 0, y: 0, active: false } };
 
-    // Управление
-    const input = {
-        move: { x: 0, y: 0, active: false },
-        shoot: { x: 0, y: 0, active: false }
-    };
-
-    // Настройки оружия
+    // НАСТРОЙКИ ОРУЖИЯ (Базука стала дисбалансной)
     const WEAPONS = [
-        { name: "Базука", color: "#e67e22", speed: 6, dmg: 100, delay: 60, type: 'explosive' }, // Медленная, сильная
-        { name: "Автомат", color: "#f1c40f", speed: 12, dmg: 20, delay: 8, type: 'rapid' },    // Быстрый
-        { name: "Пистолеты", color: "#3498db", speed: 10, dmg: 35, delay: 20, type: 'dual' }   // Средний, двойной
+        { name: "Базука", color: "#e67e22", speed: 8, dmg: 500, delay: 80, type: 'explosive', radius: 150 }, 
+        { name: "Автомат", color: "#f1c40f", speed: 14, dmg: 25, delay: 7, type: 'rapid' },
+        { name: "Пистолеты", color: "#3498db", speed: 12, dmg: 40, delay: 15, type: 'dual' }
     ];
     let currentWeaponIndex = 0;
 
     function changeWeapon(index) {
         currentWeaponIndex = index;
-        document.querySelectorAll('.weapon-btn').forEach((btn, i) => {
-            btn.classList.toggle('active', i === index);
-        });
+        document.querySelectorAll('.weapon-btn').forEach((btn, i) => btn.classList.toggle('active', i === index));
     }
 
-    // Классы объектов
     class Player {
         constructor() {
-            this.x = width / 2;
-            this.y = height / 2;
-            this.radius = 20;
-            this.speed = 5;
-            this.hp = 100;
-            this.maxHp = 100;
+            this.x = width / 2; this.y = height / 2;
+            this.radius = 22; this.speed = 5;
+            this.hp = 100; this.maxHp = 100;
             this.shootCooldown = 0;
         }
         draw() {
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-            ctx.fillStyle = '#3498db';
-            ctx.fill();
-            ctx.strokeStyle = '#fff';
-            ctx.lineWidth = 3;
-            ctx.stroke();
+            ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+            ctx.fillStyle = '#3498db'; ctx.fill();
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.stroke();
         }
         update() {
             if (this.hp <= 0) return;
-            
-            // Движение
             if (input.move.active) {
-                this.x += input.move.x * this.speed;
-                this.y += input.move.y * this.speed;
-                
-                // Ограничение по экрану
+                this.x += input.move.x * this.speed; this.y += input.move.y * this.speed;
                 this.x = Math.max(this.radius, Math.min(width - this.radius, this.x));
                 this.y = Math.max(this.radius, Math.min(height - this.radius, this.y));
             }
-
-            // Стрельба
             if (this.shootCooldown > 0) this.shootCooldown--;
             
             if (input.shoot.active && this.shootCooldown <= 0) {
@@ -189,300 +90,227 @@
                 let angle = Math.atan2(input.shoot.y, input.shoot.x);
                 
                 if (w.type === 'dual') {
-                    // Два пистолета (немного смещены)
                     let offsetAngle = Math.PI / 2;
-                    let offsetX = Math.cos(angle + offsetAngle) * 10;
-                    let offsetY = Math.sin(angle + offsetAngle) * 10;
-                    bullets.push(new Bullet(this.x + offsetX, this.y + offsetY, angle, w.speed, w.dmg, true, w.color));
-                    bullets.push(new Bullet(this.x - offsetX, this.y - offsetY, angle, w.speed, w.dmg, true, w.color));
+                    bullets.push(new Bullet(this.x + Math.cos(angle+offsetAngle)*10, this.y + Math.sin(angle+offsetAngle)*10, angle, w.speed, w.dmg, true, w.color));
+                    bullets.push(new Bullet(this.x - Math.cos(angle+offsetAngle)*10, this.y - Math.sin(angle+offsetAngle)*10, angle, w.speed, w.dmg, true, w.color));
                 } else {
-                    bullets.push(new Bullet(this.x, this.y, angle, w.speed, w.dmg, true, w.color, w.type));
+                    bullets.push(new Bullet(this.x, this.y, angle, w.speed, w.dmg, true, w.color, w.type, w.radius));
+                    if(w.type === 'explosive') { // Отдача от базуки
+                        this.x -= Math.cos(angle) * 20;
+                        this.y -= Math.sin(angle) * 20;
+                    }
                 }
                 this.shootCooldown = w.delay;
             }
         }
     }
 
-    class Bullet {
-        constructor(x, y, angle, speed, damage, isPlayer, color, type = 'normal') {
-            this.x = x;
-            this.y = y;
-            this.vx = Math.cos(angle) * speed;
-            this.vy = Math.sin(angle) * speed;
-            this.damage = damage;
-            this.isPlayer = isPlayer;
-            this.color = color;
-            this.radius = type === 'explosive' ? 8 : 4;
-            this.type = type;
+    // Класс для эффекта взрыва
+    class Explosion {
+        constructor(x, y, maxRadius) {
+            this.x = x; this.y = y;
+            this.radius = 10;
+            this.maxRadius = maxRadius;
+            this.alpha = 1;
             this.active = true;
         }
+        update() {
+            this.radius += 10;
+            this.alpha -= 0.03;
+            if (this.alpha <= 0) this.active = false;
+        }
         draw() {
+            ctx.save();
+            ctx.globalAlpha = this.alpha;
             ctx.beginPath();
             ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-            ctx.fillStyle = this.color;
+            ctx.strokeStyle = "white";
+            ctx.lineWidth = 5;
+            ctx.stroke();
+            ctx.fillStyle = "rgba(230, 126, 34, 0.3)";
             ctx.fill();
+            ctx.restore();
+        }
+    }
+
+    class Bullet {
+        constructor(x, y, angle, speed, damage, isPlayer, color, type = 'normal', expRadius = 0) {
+            this.x = x; this.y = y;
+            this.vx = Math.cos(angle) * speed;
+            this.vy = Math.sin(angle) * speed;
+            this.damage = damage; this.isPlayer = isPlayer;
+            this.color = color; this.active = true;
+            this.type = type; this.expRadius = expRadius;
+            this.radius = (type === 'explosive') ? 10 : 4;
+        }
+        draw() {
+            ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+            ctx.fillStyle = this.color; ctx.fill();
+            if(this.type === 'explosive') {
+                ctx.shadowBlur = 15; ctx.shadowColor = this.color;
+            }
         }
         update() {
-            this.x += this.vx;
-            this.y += this.vy;
-            if (this.x < 0 || this.x > width || this.y < 0 || this.y > height) {
-                this.active = false;
-            }
+            this.x += this.vx; this.y += this.vy;
+            if (this.x < 0 || this.x > width || this.y < 0 || this.y > height) this.active = false;
         }
     }
 
     class Enemy {
         constructor(x, y, type) {
-            this.x = x;
-            this.y = y;
-            this.size = 30; // Квадраты
-            this.type = type;
-            this.active = true;
-            this.shootTimer = 0;
-
-            if (type === 'sword') {
-                this.hp = 40; this.speed = 3; this.color = '#e74c3c'; // Красный, быстрый, милишник
-            } else if (type === 'pistol') {
-                this.hp = 30; this.speed = 1.5; this.color = '#2ecc71'; // Зеленый, стрелок
-            } else if (type === 'rifle') {
-                this.hp = 120; this.speed = 1; this.color = '#95a5a6'; // Серый, бронированный
-            }
+            this.x = x; this.y = y; this.size = 32;
+            this.type = type; this.active = true; this.shootTimer = 0;
+            if (type === 'sword') { this.hp = 60; this.speed = 2.8; this.color = '#e74c3c'; }
+            else if (type === 'pistol') { this.hp = 50; this.speed = 1.5; this.color = '#2ecc71'; }
+            else if (type === 'rifle') { this.hp = 200; this.speed = 1; this.color = '#7f8c8d'; }
         }
         draw() {
             ctx.fillStyle = this.color;
             ctx.fillRect(this.x - this.size/2, this.y - this.size/2, this.size, this.size);
-            
-            // Полоска ХП
-            ctx.fillStyle = 'red';
-            ctx.fillRect(this.x - this.size/2, this.y - this.size/2 - 10, this.size, 5);
-            ctx.fillStyle = 'green';
-            let hpPercent = Math.max(0, this.hp / (this.type === 'rifle' ? 120 : (this.type === 'sword' ? 40 : 30)));
-            ctx.fillRect(this.x - this.size/2, this.y - this.size/2 - 10, this.size * hpPercent, 5);
+            ctx.fillStyle = 'red'; ctx.fillRect(this.x - this.size/2, this.y - this.size/2 - 10, this.size, 5);
+            ctx.fillStyle = '#2ecc71';
+            let maxH = (this.type === 'rifle' ? 200 : (this.type === 'sword' ? 60 : 50));
+            ctx.fillRect(this.x - this.size/2, this.y - this.size/2 - 10, this.size * (this.hp/maxH), 5);
         }
         update() {
-            let dx = player.x - this.x;
-            let dy = player.y - this.y;
-            let dist = Math.hypot(dx, dy);
-
-            // Движение к игроку
-            if (dist > 0 && (this.type === 'sword' || dist > 200)) {
-                this.x += (dx / dist) * this.speed;
-                this.y += (dy / dist) * this.speed;
+            let dx = player.x - this.x, dy = player.y - this.y, dist = Math.hypot(dx, dy);
+            if (dist > 0 && (this.type === 'sword' || dist > 250)) {
+                this.x += (dx / dist) * this.speed; this.y += (dy / dist) * this.speed;
             }
-
-            // Урон в ближнем бою
             if (dist < player.radius + this.size/2 && this.type === 'sword') {
-                player.hp -= 0.5;
-                updateUI();
+                player.hp -= 0.4; updateUI();
             }
-
-            // Стрельба врагов
             if (this.type !== 'sword') {
                 this.shootTimer--;
-                if (this.shootTimer <= 0 && dist < 400) {
-                    let angle = Math.atan2(dy, dx) + (Math.random() - 0.5) * 0.2; // Разброс
-                    let bSpeed = 6;
-                    let bDmg = this.type === 'rifle' ? 15 : 10;
-                    bullets.push(new Bullet(this.x, this.y, angle, bSpeed, bDmg, false, '#ff0000'));
-                    this.shootTimer = this.type === 'rifle' ? 40 : 90; // Автомат стреляет чаще
+                if (this.shootTimer <= 0 && dist < 500) {
+                    let angle = Math.atan2(dy, dx);
+                    bullets.push(new Bullet(this.x, this.y, angle, 6, 10, false, '#ff4757'));
+                    this.shootTimer = this.type === 'rifle' ? 35 : 80;
                 }
             }
         }
     }
 
-    // Инициализация
     let player = new Player();
     let bullets = [];
     let enemies = [];
+    let explosions = [];
 
     function startRoom() {
-        enemies = [];
-        bullets = [];
-        player.hp = player.maxHp;
+        enemies = []; bullets = []; explosions = [];
+        player.hp = Math.min(player.maxHp, player.hp + 20); // Немного хилим при входе
         updateUI();
-        
-        let enemyCount = currentRoom * 2 + 2; // Увеличиваем количество
-        for (let i = 0; i < enemyCount; i++) {
+        let count = currentRoom + 3;
+        for (let i = 0; i < count; i++) {
             let x, y;
-            // Спавн подальше от игрока
-            do {
-                x = Math.random() * width;
-                y = Math.random() * height;
-            } while (Math.hypot(x - player.x, y - player.y) < 300);
-
-            let typeRand = Math.random();
-            let type = 'sword';
-            if (currentRoom > 2 && typeRand > 0.5) type = 'pistol';
-            if (currentRoom > 4 && typeRand > 0.8) type = 'rifle'; // Бронированные появляются позже
-
-            enemies.push(new Enemy(x, y, type));
+            do { x = Math.random() * width; y = Math.random() * height; } while (Math.hypot(x - player.x, y - player.y) < 300);
+            let t = 'sword';
+            if (currentRoom > 2) t = Math.random() > 0.5 ? 'pistol' : 'sword';
+            if (currentRoom > 5) t = Math.random() > 0.7 ? 'rifle' : t;
+            enemies.push(new Enemy(x, y, t));
         }
     }
 
     function updateUI() {
         document.getElementById('hp').innerText = Math.max(0, Math.floor(player.hp));
         document.getElementById('roomNum').innerText = currentRoom;
-        
-        if (player.hp <= 0) {
-            isGameOver = true;
-            document.getElementById('game-over').style.display = 'block';
-        }
+        if (player.hp <= 0) { isGameOver = true; document.getElementById('game-over').style.display = 'block'; }
     }
 
-    // Игровой цикл
     function loop() {
         if (!isGameOver) {
-            ctx.clearRect(0, 0, width, height);
+            ctx.fillStyle = '#1a1a1a'; ctx.fillRect(0, 0, width, height);
+            ctx.strokeStyle = '#222';
+            for(let i=0; i<width; i+=60) { ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,height); ctx.stroke(); }
+            for(let i=0; i<height; i+=60) { ctx.beginPath(); ctx.moveTo(0,i); ctx.lineTo(width,i); ctx.stroke(); }
 
-            // Отрисовка пола (сетка)
-            ctx.strokeStyle = 'rgba(255,255,255,0.05)';
-            for(let i=0; i<width; i+=50) { ctx.beginPath(); ctx.moveTo(i,0); ctx.lineTo(i,height); ctx.stroke(); }
-            for(let i=0; i<height; i+=50) { ctx.beginPath(); ctx.moveTo(0,i); ctx.lineTo(width,i); ctx.stroke(); }
+            player.update(); player.draw();
 
-            player.update();
-            player.draw();
+            // Обработка взрывов (визуально)
+            for(let i=explosions.length-1; i>=0; i--) {
+                explosions[i].update(); explosions[i].draw();
+                if(!explosions[i].active) explosions.splice(i, 1);
+            }
 
-            // Пули
             for (let i = bullets.length - 1; i >= 0; i--) {
-                let b = bullets[i];
-                b.update();
-                b.draw();
+                let b = bullets[i]; b.update(); b.draw();
+                if (!b.active) { bullets.splice(i, 1); continue; }
 
-                if (!b.active) {
-                    bullets.splice(i, 1);
-                    continue;
-                }
-
-                // Столкновения пуль с игроком
                 if (!b.isPlayer) {
-                    let dist = Math.hypot(player.x - b.x, player.y - b.y);
-                    if (dist < player.radius + b.radius) {
-                        player.hp -= b.damage;
-                        b.active = false;
-                        updateUI();
+                    if (Math.hypot(player.x - b.x, player.y - b.y) < player.radius + b.radius) {
+                        player.hp -= b.damage; b.active = false; updateUI();
                     }
-                } 
-                // Столкновения пуль с врагами
-                else {
+                } else {
                     for (let j = enemies.length - 1; j >= 0; j--) {
                         let e = enemies[j];
-                        // Простая коллизия круг-квадрат
-                        let dx = Math.abs(b.x - e.x);
-                        let dy = Math.abs(b.y - e.y);
-                        if (dx < e.size/2 + b.radius && dy < e.size/2 + b.radius) {
-                            
-                            // Если базука - наносим урон по площади
+                        if (Math.abs(b.x - e.x) < e.size/2 + b.radius && Math.abs(b.y - e.y) < e.size/2 + b.radius) {
                             if (b.type === 'explosive') {
-                                enemies.forEach(enemy => {
-                                    if (Math.hypot(enemy.x - b.x, enemy.y - b.y) < 100) {
-                                        enemy.hp -= b.damage;
-                                    }
+                                explosions.push(new Explosion(b.x, b.y, b.expRadius)); // Создаем волну
+                                enemies.forEach(en => {
+                                    let d = Math.hypot(en.x - b.x, en.y - b.y);
+                                    if (d < b.expRadius) en.hp -= b.damage * (1 - d/b.expRadius);
                                 });
-                            } else {
-                                e.hp -= b.damage;
-                            }
-                            
-                            b.active = false;
-                            if (e.hp <= 0) {
-                                e.active = false;
-                            }
-                            break;
+                            } else { e.hp -= b.damage; }
+                            b.active = false; break;
                         }
                     }
                 }
             }
 
-            // Враги
-            let allDead = true;
+            let anyAlive = false;
             for (let i = enemies.length - 1; i >= 0; i--) {
-                let e = enemies[i];
-                if (e.active) {
-                    e.update();
-                    e.draw();
-                    allDead = false;
-                } else {
-                    enemies.splice(i, 1);
-                }
+                if (enemies[i].hp <= 0) { enemies.splice(i, 1); continue; }
+                enemies[i].update(); enemies[i].draw();
+                anyAlive = true;
             }
 
-            // Переход в следующую комнату
-            if (allDead && enemies.length === 0) {
+            if (!anyAlive) {
                 currentRoom++;
                 if (currentRoom > 10) {
                     isGameOver = true;
-                    document.getElementById('go-text').innerText = "Вы прошли игру!";
-                    document.getElementById('go-text').style.color = "#f1c40f";
+                    document.getElementById('go-text').innerText = "ПОБЕДА!";
+                    document.getElementById('go-text').style.color = "#2ecc71";
                     document.getElementById('game-over').style.display = 'block';
-                } else {
-                    startRoom();
-                }
+                } else { startRoom(); }
             }
         }
         requestAnimationFrame(loop);
     }
 
-    // --- Обработка сенсоров (Touch Joysticks) ---
-    const joyLeft = document.getElementById('joystick-left');
-    const joyLeftKnob = document.getElementById('joystick-left-knob');
-    const joyRight = document.getElementById('joystick-right');
-    const joyRightKnob = document.getElementById('joystick-right-knob');
-    
-    let touchLeftId = null, touchRightId = null;
-    let startLeft = {x:0, y:0}, startRight = {x:0, y:0};
+    // Джойстики
+    const jL = document.getElementById('joystick-left'), jLK = document.getElementById('joystick-left-knob');
+    const jR = document.getElementById('joystick-right'), jRK = document.getElementById('joystick-right-knob');
+    let tLId = null, tRId = null, sL = {x:0, y:0}, sR = {x:0, y:0};
 
     window.addEventListener('touchstart', (e) => {
         for (let i = 0; i < e.changedTouches.length; i++) {
             let t = e.changedTouches[i];
-            // Игнорируем нажатия на кнопки оружия
             if(t.target.tagName === 'BUTTON') continue;
-
-            if (t.clientX < width / 2 && touchLeftId === null) {
-                touchLeftId = t.identifier;
-                startLeft.x = t.clientX; startLeft.y = t.clientY;
-                joyLeft.style.display = 'block';
-                joyLeft.style.left = (t.clientX - 60) + 'px';
-                joyLeft.style.top = (t.clientY - 60) + 'px';
-                joyLeftKnob.style.transform = `translate(-50%, -50%)`;
+            if (t.clientX < width/2 && tLId === null) {
+                tLId = t.identifier; sL = {x:t.clientX, y:t.clientY};
+                jL.style.display = 'block'; jL.style.left = (sL.x-60)+'px'; jL.style.top = (sL.y-60)+'px';
                 input.move.active = true;
-            } else if (t.clientX >= width / 2 && touchRightId === null) {
-                touchRightId = t.identifier;
-                startRight.x = t.clientX; startRight.y = t.clientY;
-                joyRight.style.display = 'block';
-                joyRight.style.left = (t.clientX - 60) + 'px';
-                joyRight.style.top = (t.clientY - 60) + 'px';
-                joyRightKnob.style.transform = `translate(-50%, -50%)`;
+            } else if (tRId === null) {
+                tRId = t.identifier; sR = {x:t.clientX, y:t.clientY};
+                jR.style.display = 'block'; jR.style.left = (sR.x-60)+'px'; jR.style.top = (sR.y-60)+'px';
                 input.shoot.active = true;
             }
         }
     });
 
     window.addEventListener('touchmove', (e) => {
-        e.preventDefault(); // Запрет скролла
+        e.preventDefault();
         for (let i = 0; i < e.changedTouches.length; i++) {
             let t = e.changedTouches[i];
-            
-            if (t.identifier === touchLeftId) {
-                let dx = t.clientX - startLeft.x;
-                let dy = t.clientY - startLeft.y;
-                let dist = Math.min(Math.hypot(dx, dy), 60);
-                let angle = Math.atan2(dy, dx);
-                
-                input.move.x = Math.cos(angle) * (dist/60);
-                input.move.y = Math.sin(angle) * (dist/60);
-                
-                joyLeftKnob.style.transform = `translate(calc(-50% + ${Math.cos(angle)*dist}px), calc(-50% + ${Math.sin(angle)*dist}px))`;
+            if (t.identifier === tLId) {
+                let dx = t.clientX - sL.x, dy = t.clientY - sL.y, dist = Math.min(Math.hypot(dx, dy), 60), ang = Math.atan2(dy, dx);
+                input.move.x = Math.cos(ang) * (dist/60); input.move.y = Math.sin(ang) * (dist/60);
+                jLK.style.transform = `translate(calc(-50% + ${Math.cos(ang)*dist}px), calc(-50% + ${Math.sin(ang)*dist}px))`;
             }
-            
-            if (t.identifier === touchRightId) {
-                let dx = t.clientX - startRight.x;
-                let dy = t.clientY - startRight.y;
-                let dist = Math.min(Math.hypot(dx, dy), 60);
-                let angle = Math.atan2(dy, dx);
-                
-                input.shoot.x = Math.cos(angle);
-                input.shoot.y = Math.sin(angle);
-                
-                joyRightKnob.style.transform = `translate(calc(-50% + ${Math.cos(angle)*dist}px), calc(-50% + ${Math.sin(angle)*dist}px))`;
+            if (t.identifier === tRId) {
+                let dx = t.clientX - sR.x, dy = t.clientY - sR.y, dist = Math.min(Math.hypot(dx, dy), 60), ang = Math.atan2(dy, dx);
+                input.shoot.x = Math.cos(ang); input.shoot.y = Math.sin(ang);
+                jRK.style.transform = `translate(calc(-50% + ${Math.cos(ang)*dist}px), calc(-50% + ${Math.sin(ang)*dist}px))`;
             }
         }
     }, {passive: false});
@@ -490,23 +318,13 @@
     window.addEventListener('touchend', (e) => {
         for (let i = 0; i < e.changedTouches.length; i++) {
             let t = e.changedTouches[i];
-            if (t.identifier === touchLeftId) {
-                touchLeftId = null;
-                input.move.active = false;
-                joyLeft.style.display = 'none';
-            }
-            if (t.identifier === touchRightId) {
-                touchRightId = null;
-                input.shoot.active = false;
-                joyRight.style.display = 'none';
-            }
+            if (t.identifier === tLId) { tLId = null; input.move.active = false; jL.style.display = 'none'; }
+            if (t.identifier === tRId) { tRId = null; input.shoot.active = false; jR.style.display = 'none'; }
         }
     });
 
-    // Старт игры
     startRoom();
     loop();
 </script>
-
 </body>
 </html>
