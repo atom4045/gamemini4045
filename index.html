@@ -1,253 +1,401 @@
-<script>
-const cvs = document.getElementById('game');
-const ctx = cvs.getContext('2d');
-let W, H, frames = 0, coins = 150, room = 1, armor = 0, isDead = false;
-
-const p = { x: 0, y: 0, r: 18, hp: 100, max: 100, spd: 4, w: 0, rel: 0, heat: 0, over: false, sup: 0, dual: 1 };
-
-const WPN = [
-    { n: "Базука", sn: "Ядерка", dmg: 120, rel: 80, spd: 8, col: "#e67e22", t: "rocket" },
-    { n: "Автомат", sn: "Огнемет", dmg: 18, rel: 8, spd: 15, col: "#f1c40f", t: "auto" },
-    { n: "Пистолеты", sn: "Стихии", dmg: 25, rel: 12, spd: 14, col: "#3498db", t: "dual" },
-    { n: "Меч", sn: "Смерч 360°", dmg: 85, rel: 25, r: 130, col: "#bdc3c7", t: "melee" },
-    { n: "Миниган", sn: "Без перегрева", dmg: 12, rel: 4, spd: 18, col: "#7f8c8d", t: "mini", pr: 300, buy: false },
-    { n: "Дробовик", sn: "Кольцо дроби", dmg: 20, rel: 40, spd: 12, col: "#95a5a6", t: "shot" },
-    { n: "Клинок", sn: "Вампиризм", dmg: 45, rel: 20, r: 100, col: "#c0392b", t: "blade" },
-    { n: "Сингуляр", sn: "Черная Дыра", dmg: 5, rel: 120, spd: 6, col: "#9b59b6", t: "sing" }
-];
-
-let en = [], bul = [], part = [], slashes = [], holes = [];
-const inp = { m: { a: false, x: 0, y: 0, id: null, sx: 0, sy: 0 }, s: { a: false, ang: 0, id: null, sx: 0, sy: 0 } };
-
-function rsz() { W = window.innerWidth; H = window.innerHeight; cvs.width = W; cvs.height = H; if(!p.x){ p.x=W/2; p.y=H/2; } }
-window.addEventListener('resize', rsz); rsz();
-
-function setW(i) {
-    if(WPN[i].pr && coins < WPN[i].pr && !WPN[i].buy) return alert(`Цена: ${WPN[i].pr}💰`);
-    if(WPN[i].pr) { coins -= WPN[i].pr; WPN[i].buy = true; }
-    p.w = i; document.querySelectorAll('.w-btn').forEach((b, k) => b.classList.toggle('active', k === i));
-    document.getElementById('w-name').innerText = WPN[i].n; document.getElementById('w-super').innerText = "Super: " + WPN[i].sn;
-    document.getElementById('heat-bar').style.display = WPN[i].t === "mini" ? "block" : "none";
-}
-
-function useSuper() { if(coins >= 100 && p.sup <= 0) { coins -= 100; p.sup = 360; } }
-
-function dmgP(v) {
-    if(armor > 0) { armor -= v; if(armor < 0) { p.hp += armor; armor = 0; } } else p.hp -= v;
-    if(p.hp <= 0 && !isDead) { isDead = true; document.getElementById('screen-death').style.display = "flex"; }
-}
-
-function exp(x, y, col, dmg, r) {
-    for(let i=0; i<r/5; i++) part.push({x, y, vx:(Math.random()-0.5)*15, vy:(Math.random()-0.5)*15, c:col, l:30});
-    en.forEach(e => { if(Math.hypot(e.x-x, e.y-y) < r) e.hp -= dmg; });
-}
-
-function spawn() {
-    en = []; bul = []; holes = []; slashes = [];
-    for(let i=0; i<4 + room*2; i++) {
-        let ex, ey; do { ex=Math.random()*W; ey=Math.random()*H; } while(Math.hypot(ex-p.x, ey-p.y) < 250);
-        let t = 'n'; if(room>2 && i==0) t='b'; if(room>5 && i==1) t='s';
-        let h = 100 + room*30, s=30, sp=1.5;
-        if(t=='b'){ h*=5; s=60; sp=0.8; } if(t=='s'){ h*=0.8; s=20; sp=2.2; }
-        en.push({x:ex, y:ey, t, hp:h, mh:h, s, sp, fx:0 });
-    }
-}
-
-function shoot() {
-    let wp = WPN[p.w], isS = p.sup > 0, ang = inp.s.ang;
-    if(wp.t === "rocket") {
-        if(isS) { bul.push({x:p.x, y:p.y, vx:Math.cos(ang)*5, vy:Math.sin(ang)*5, c:"#ff4757", d:wp.dmg*3, pl:1, l:200, ex:"nuke"}); p.rel = wp.rel; }
-        else { bul.push({x:p.x, y:p.y, vx:Math.cos(ang)*wp.spd, vy:Math.sin(ang)*wp.spd, c:wp.col, d:wp.dmg, pl:1, l:150, ex:"boom"}); p.rel = wp.rel; }
-    } else if(wp.t === "auto") {
-        if(isS) { bul.push({x:p.x, y:p.y, vx:Math.cos(ang+(Math.random()-0.5)*0.3)*18, vy:Math.sin(ang+(Math.random()-0.5)*0.3)*18, c:"#e67e22", d:wp.dmg, pl:1, l:60, fx:"fire"}); p.rel = 2; }
-        else { bul.push({x:p.x, y:p.y, vx:Math.cos(ang)*wp.spd, vy:Math.sin(ang)*wp.spd, c:wp.col, d:wp.dmg, pl:1, l:120}); p.rel = wp.rel; }
-    } else if(wp.t === "dual") {
-        let ox = p.x + Math.cos(ang+Math.PI/2)*15*p.dual, oy = p.y + Math.sin(ang+Math.PI/2)*15*p.dual; p.dual *= -1;
-        let fx = isS ? (p.sup>240?"ice":(p.sup>120?"fire":"psn")) : null;
-        bul.push({x:ox, y:oy, vx:Math.cos(ang)*wp.spd, vy:Math.sin(ang)*wp.spd, c:isS?"#fff":wp.col, d:wp.dmg, pl:1, l:100, fx});
-        p.rel = isS ? wp.rel/2 : wp.rel;
-    } else if(wp.t === "melee" || wp.t === "blade") {
-        slashes.push({x:p.x, y:p.y, a:ang, r:wp.r, c:isS?"#f1c40f":wp.col, l:15, ml:15, circ: (isS && wp.t==="melee")});
-        en.forEach(e => {
-            let d = Math.hypot(e.x-p.x, e.y-p.y);
-            if(d < wp.r && (isS && wp.t==="melee" || Math.abs(ang - Math.atan2(e.y-p.y, e.x-p.x)) < 1.2)) {
-                e.hp -= wp.dmg * (isS?1.5:1); if(wp.t==="blade" && isS) { p.hp = Math.min(p.max, p.hp+8); e.fx="psn"; }
-            }
-        }); p.rel = wp.rel;
-    } else if(wp.t === "mini" && !p.over) {
-        bul.push({x:p.x, y:p.y, vx:Math.cos(ang+(Math.random()-0.5)*0.2)*wp.spd, vy:Math.sin(ang+(Math.random()-0.5)*0.2)*wp.spd, c:wp.col, d:wp.dmg, pl:1, l:120});
-        if(!isS) { p.heat += 3; if(p.heat>=100) p.over = true; } p.rel = wp.rel;
-    } else if(wp.t === "shot") {
-        let c = isS ? 12 : 5, step = isS ? (Math.PI*2/12) : 0.15;
-        for(let i=0; i<c; i++) bul.push({x:p.x, y:p.y, vx:Math.cos(ang + (isS?i*step:(i-2)*step))*wp.spd, vy:Math.sin(ang + (isS?i*step:(i-2)*step))*wp.spd, c:wp.col, d:wp.dmg, pl:1, l:80});
-        p.rel = wp.rel;
-    } else if(wp.t === "sing") {
-        bul.push({x:p.x, y:p.y, vx:Math.cos(ang)*wp.spd, vy:Math.sin(ang)*wp.spd, c:wp.col, d:0, pl:1, l:120, ex:isS?"b_hole":"hole"}); p.rel = wp.rel;
-    }
-}
-
-function upd() {
-    if(isDead) return; frames++; ctx.fillStyle = "#111"; ctx.fillRect(0,0,W,H);
-    if(inp.m.a) { p.x += inp.m.x*p.spd; p.y += inp.m.y*p.spd; }
-    p.x = Math.max(p.r, Math.min(W-p.r, p.x)); p.y = Math.max(p.r, Math.min(H-p.r, p.y));
-
-    if(p.rel > 0) p.rel--; if(p.sup > 0) p.sup--;
-    if(p.over) { p.heat -= 1; if(p.heat<=0){ p.heat=0; p.over=false; } } else if(p.heat>0 && !inp.s.a) p.heat -= 0.5;
-    if(inp.s.a && p.rel <= 0) shoot();
-
-    for(let i=holes.length-1; i>=0; i--) {
-        let h = holes[i]; h.l--; ctx.fillStyle=`rgba(155,89,182,0.3)`; ctx.beginPath(); ctx.arc(h.x, h.y, h.r, 0, Math.PI*2); ctx.fill();
-        en.forEach(e => { if(Math.hypot(e.x-h.x, e.y-h.y) < h.r) { e.x+=(h.x-e.x)*0.05; e.y+=(h.y-e.y)*0.05; e.hp-=1; }});
-        if(h.l<=0) holes.splice(i,1);
-    }
-
-    for(let i=en.length-1; i>=0; i--) {
-        let e = en[i], dx = p.x-e.x, dy = p.y-e.y, d = Math.hypot(dx,dy), mod=1;
-        if(e.fx === "ice") { mod=0.3; if(frames%60===0)e.fx=0; }
-        if(e.fx === "fire") { e.hp-=0.5; if(frames%120===0)e.fx=0; }
-        if(e.fx === "psn") { e.hp-=1; if(frames%180===0)e.fx=0; }
-        e.x += (dx/d)*e.sp*mod; e.y += (dy/d)*e.sp*mod;
-        if(d < p.r+e.s/2) dmgP(0.5);
-        ctx.fillStyle = e.fx==="ice"?"#74b9ff":e.fx==="fire"?"#ff7675":(e.t==='b'?"#d35400":(e.t==='s'?"#f39c12":"#95a5a6"));
-        ctx.fillRect(e.x-e.s/2, e.y-e.s/2, e.s, e.s); ctx.fillStyle="#2ecc71"; ctx.fillRect(e.x-e.s/2, e.y-e.s/2-10, e.s*(e.hp/e.mh), 4);
-        if(e.hp<=0) { coins += e.t==='b'?50:15; exp(e.x, e.y, "#bdc3c7", 0, 30); en.splice(i,1); }
-    }
-    if(en.length === 0) { room++; spawn(); }
-
-    for(let i=bul.length-1; i>=0; i--) {
-        let b = bul[i]; b.x+=b.vx; b.y+=b.vy; b.l--;
-        ctx.fillStyle=b.c; ctx.beginPath(); ctx.arc(b.x, b.y, 5, 0, Math.PI*2); ctx.fill();
-        for(let e of en) {
-            if(Math.hypot(b.x-e.x, b.y-e.y) < e.s/2) {
-                if(b.ex === "boom") exp(b.x, b.y, "#e67e22", b.d, 120);
-                else if(b.ex === "nuke") exp(b.x, b.y, "#ff4757", b.d, 300);
-                else if(b.ex === "hole") holes.push({x:b.x, y:b.y, r:120, l:180});
-                else if(b.ex === "b_hole") holes.push({x:b.x, y:b.y, r:250, l:300});
-                else { e.hp -= b.d; if(b.fx) e.fx = b.fx; }
-                b.l=0; break;
-            }
-        } if(b.l<=0) bul.splice(i,1);
-    }
-
-    for(let i=slashes.length-1; i>=0; i--) {
-        let s = slashes[i]; s.l--; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(s.a);
-        ctx.strokeStyle=s.c; ctx.lineWidth=8*(s.l/s.ml); ctx.beginPath();
-        if(s.circ) ctx.arc(0,0,s.r,0,Math.PI*2); else ctx.arc(0,0,s.r,-1,1);
-        ctx.stroke(); ctx.restore(); if(s.l<=0) slashes.splice(i,1);
-    }
-
-    for(let i=part.length-1; i>=0; i--) {
-        let pt = part[i]; pt.x+=pt.vx; pt.y+=pt.vy; pt.l--;
-        ctx.fillStyle=pt.c; ctx.fillRect(pt.x, pt.y, 4, 4); if(pt.l<=0) part.splice(i,1);
-    }
-
-    ctx.fillStyle="#3498db"; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill();
-    if(p.sup>0) { ctx.strokeStyle="#ffa502"; ctx.lineWidth=3; ctx.stroke(); }
-
-    document.getElementById('val-hp').innerText = Math.floor(p.hp); document.getElementById('val-arm').innerText = armor;
-    document.getElementById('val-coins').innerText = coins; document.getElementById('val-room').innerText = room;
-    let btn = document.getElementById('btn-super'); btn.className = p.sup>0 ? "active" : (coins>=100?"ready":"");
-    document.getElementById('heat-fill').style.width = (p.heat)+"%"; document.getElementById('heat-fill').style.background = p.over?"#ff4757":"#ffa502";
-    requestAnimationFrame(upd);
-}
-
-window.addEventListener('touchstart', e => {
-    for(let t of e.changedTouches) {
-        if(t.target.tagName==='BUTTON' || t.target.id==='btn-super') continue;
-        if(t.clientX < W/2) { inp.m.a=true; inp.m.id=t.identifier; inp.m.sx=t.clientX; inp.m.sy=t.clientY; }
-        else { inp.s.a=true; inp.s.id=t.identifier; inp.s.sx=t.clientX; inp.s.sy=t.clientY; inp.s.ang=Math.atan2(t.clientY-inp.s.sy, t.clientX-inp.s.sx); }
-    }
-});
-window.addEventListener('touchmove', e => { e.preventDefault();
-    for(let t of e.changedTouches) {
-        if(t.identifier === inp.m.id) { let dx=t.clientX-inp.m.sx, dy=t.clientY-inp.m.sy, d=Math.hypot(dx,dy); if(d>5){ inp.m.x=dx/d; inp.m.y=dy/d; } else {inp.m.x=0; inp.m.y=0;} }
-        if(t.identifier === inp.s.id) { let dx=t.clientX-inp.s.sx, dy=t.clientY-inp.s.sy; if(Math.hypot(dx,dy)>10) inp.s.ang=Math.atan2(dy,dx); }
-    }
-}, {passive:false});
-window.addEventListener('touchend', e => {
-    for(let t of e.changedTouches) {
-        if(t.identifier === inp.m.id) { inp.m.a=false; inp.m.x=0; inp.m.y=0; }
-        if(t.identifier === inp.s.id) { inp.s.a=false; }
-    }
-});
-
-spawn(); requestAnimationFrame(upd);
-</script>
-</body>
-</html>
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Underground: Final Fix</title>
+    <title>Underground: Absolute Edition</title>
     <style>
-        * { box-sizing: border-box; user-select: none; -webkit-user-select: none; font-family: sans-serif; }
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; touch-action: none; }
-        canvas { display: block; background-color: #1a1a1d; }
+        /* =========================================
+           UI И ОФОРМЛЕНИЕ
+        ========================================= */
+        * { box-sizing: border-box; user-select: none; -webkit-user-select: none; font-family: 'Courier New', Courier, monospace; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #050505; overflow: hidden; touch-action: none; }
+        canvas { display: block; width: 100%; height: 100%; background-color: #111; }
 
-        /* Верхняя панель */
-        #ui-top { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; justify-content: space-between; pointer-events: none; z-index: 100; }
-        .ui-box { background: rgba(0, 0, 0, 0.8); color: #fff; padding: 10px 15px; border-radius: 8px; border: 1px solid #444; font-size: 14px; font-weight: bold; }
-        .t-red { color: #ff4757; } .t-blue { color: #70a1ff; } .t-gold { color: #eccc68; }
+        /* Верхняя панель (Здоровье, Броня, Монеты) */
+        #hud-top { position: absolute; top: 15px; left: 15px; right: 15px; display: flex; justify-content: space-between; pointer-events: none; z-index: 10; }
+        .hud-box { background: rgba(20, 20, 20, 0.9); padding: 12px; border-radius: 8px; border: 2px solid #333; font-weight: bold; font-size: 16px; color: #fff; box-shadow: 0 4px 10px rgba(0,0,0,0.8); }
+        .text-red { color: #ff4757; } .text-blue { color: #1e90ff; } .text-gold { color: #ffa502; }
 
-        /* Кнопка СУПЕР */
-        #btn-super { 
-            position: absolute; bottom: 170px; right: 20px; width: 80px; height: 80px; 
-            border-radius: 50%; background: #2f3542; color: #fff; border: 3px solid #57606f;
-            font-weight: bold; font-size: 12px; z-index: 200; pointer-events: auto;
-            display: flex; align-items: center; justify-content: center; text-align: center;
+        /* Панель Оружия снизу */
+        #dock { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); width: 96%; display: flex; flex-direction: column; gap: 10px; z-index: 20; }
+        
+        /* Полоса перегрева (для минигана) */
+        #heat-bg { width: 60%; height: 14px; background: #222; border-radius: 7px; border: 2px solid #444; align-self: center; overflow: hidden; display: none; }
+        #heat-fill { width: 0%; height: 100%; background: linear-gradient(90deg, #ffa502, #ff4757); transition: width 0.1s; }
+
+        /* Сетка кнопок оружия */
+        #w-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; pointer-events: auto; }
+        .btn-w { background: #2f3542; color: #dfe4ea; border: 2px solid #57606f; padding: 12px 0; border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer; text-transform: uppercase; }
+        .btn-w.active { background: #ffa502; color: #000; border-color: #ff4757; box-shadow: 0 0 10px #ffa502; }
+
+        /* Кнопка Суперспособности */
+        #btn-super {
+            position: absolute; bottom: 180px; right: 20px; width: 85px; height: 85px;
+            border-radius: 50%; background: #2f3542; color: #747d8c; border: 4px solid #57606f;
+            font-weight: bold; font-size: 14px; z-index: 30; pointer-events: auto; cursor: pointer;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            box-shadow: 0 0 15px rgba(0,0,0,0.8); transition: 0.2s;
         }
-        #btn-super.ready { background: #ff4757; border-color: #ffa502; box-shadow: 0 0 20px #ff4757; }
-        #btn-super.active { background: #ffa502; color: #000; box-shadow: 0 0 30px #ffa502; }
+        #btn-super.ready { background: #ff4757; color: #fff; border-color: #ffa502; box-shadow: 0 0 25px #ff4757; animation: pulse 1s infinite; }
+        #btn-super.active { background: #ffa502; color: #000; border-color: #fff; box-shadow: 0 0 40px #ffa502; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
 
-        /* Оружие */
-        #weapon-dock { position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); width: 95%; display: flex; flex-direction: column; gap: 8px; z-index: 150; }
-        #heat-bar { width: 150px; height: 10px; background: #333; border-radius: 5px; align-self: center; display: none; overflow: hidden; border: 1px solid #555; }
-        #heat-fill { width: 0%; height: 100%; background: #ff4757; }
-        #w-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; pointer-events: auto; }
-        .w-btn { background: #2f3542; color: #fff; border: 2px solid #57606f; padding: 10px 2px; border-radius: 6px; font-size: 10px; font-weight: bold; cursor: pointer; }
-        .w-btn.active { background: #ffa502; color: #000; border-color: #ff4757; }
-
-        /* Экраны смерти */
-        #screen-death { position: absolute; inset: 0; background: rgba(0,0,0,0.9); color: #fff; display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; }
-        button.restart { padding: 15px 30px; font-size: 18px; background: #ff4757; color: white; border: none; border-radius: 8px; margin-top: 20px; font-weight: bold; cursor: pointer; }
+        /* Экраны */
+        .screen { position: absolute; inset: 0; background: rgba(0,0,0,0.9); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; color: #fff; }
+        .btn-large { padding: 15px 40px; font-size: 22px; background: #ff4757; border: none; color: white; border-radius: 12px; font-weight: bold; cursor: pointer; margin-top: 20px; }
     </style>
 </head>
 <body>
 
-<div id="ui-top">
-    <div class="ui-box">
-        <span class="t-red">❤ <span id="val-hp">100</span></span> | 
-        <span class="t-blue">🛡 <span id="val-arm">0</span></span> | 
-        <span class="t-gold">💰 <span id="val-coins">150</span></span>
-        <div style="font-size: 10px; color: #aaa; margin-top: 4px;">ЭТАЖ: <span id="val-room">1</span></div>
+    <div id="hud-top">
+        <div class="hud-box">
+            <span class="text-red">❤ <span id="ui-hp">100</span></span> | 
+            <span class="text-blue">🛡 <span id="ui-arm">0</span></span> | 
+            <span class="text-gold">💰 <span id="ui-coins">150</span></span>
+            <div style="font-size: 12px; color: #aaa; margin-top: 5px;">Этаж: <span id="ui-room">1</span></div>
+        </div>
+        <div class="hud-box" style="text-align: right;">
+            <div id="ui-wname">Базука</div>
+            <div id="ui-wsup" style="font-size: 11px; color: #ffa502; margin-top: 5px;">Ядерка</div>
+        </div>
     </div>
-    <div class="ui-box" style="text-align: right;">
-        <div id="w-name">Базука</div>
-        <div id="w-super" style="color:#ffa502; font-size: 10px; margin-top: 4px;">Super: Ядерка</div>
+
+    <button id="btn-super" onclick="activateSuper()">SUPER<br>100💰</button>
+
+    <div id="dock">
+        <div id="heat-bg"><div id="heat-fill"></div></div>
+        <div id="w-grid">
+            <button class="btn-w active" onclick="equip(0)">Базука</button>
+            <button class="btn-w" onclick="equip(1)">Автомат</button>
+            <button class="btn-w" onclick="equip(2)">2 Пистолета</button>
+            <button class="btn-w" onclick="equip(3)">Меч</button>
+            <button class="btn-w" onclick="equip(4)">Миниган</button>
+            <button class="btn-w" onclick="equip(5)">Дробовик</button>
+            <button class="btn-w" onclick="equip(6)">Клинок</button>
+            <button class="btn-w" onclick="equip(7)">Сингуляр</button>
+        </div>
     </div>
-</div>
 
-<div id="btn-super" onclick="useSuper()">SUPER<br>100💰</div>
-
-<div id="weapon-dock">
-    <div id="heat-bar"><div id="heat-fill"></div></div>
-    <div id="w-grid">
-        <button class="w-btn active" onclick="setW(0)">Базука</button>
-        <button class="w-btn" onclick="setW(1)">Автомат</button>
-        <button class="w-btn" onclick="setW(2)">Пистолеты</button>
-        <button class="w-btn" onclick="setW(3)">Меч</button>
-        <button class="w-btn" onclick="setW(4)">Миниган</button>
-        <button class="w-btn" onclick="setW(5)">Дробовик</button>
-        <button class="w-btn" onclick="setW(6)">Клинок</button>
-        <button class="w-btn" onclick="setW(7)">Сингуляр</button>
+    <div id="screen-death" class="screen">
+        <h1 style="color: #ff4757; font-size: 45px; margin: 0;">МЁРТВ</h1>
+        <p style="font-size: 20px;">Достигнут этаж: <span id="ui-final-room">1</span></p>
+        <button class="btn-large" onclick="location.reload()">ЗАНОВО</button>
     </div>
-</div>
 
-<div id="screen-death">
-    <h1 style="color:#ff4757; margin:0; font-size:40px;">ПОТРАЧЕНО</h1>
-    <button class="restart" onclick="location.reload()">РЕСТАРТ</button>
-</div>
+    <canvas id="gameCanvas"></canvas>
 
-<canvas id="game"></canvas>
+<script>
+/**
+ * =========================================
+ * ЯДРО ИГРЫ (ОПТИМИЗИРОВАНО И ЗАЩИЩЕНО)
+ * =========================================
+ */
+window.onload = function() {
+    const cvs = document.getElementById('gameCanvas');
+    const ctx = cvs.getContext('2d');
+    let W, H;
+    
+    function resize() {
+        W = window.innerWidth; H = window.innerHeight;
+        cvs.width = W; cvs.height = H;
+        if (p.x === 0) { p.x = W/2; p.y = H/2; }
+    }
+    window.addEventListener('resize', resize);
+
+    // ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
+    let frames = 0;
+    let gameState = 'play'; // play, dead
+    let coins = 150;
+    let room = 1;
+    let armor = 0;
+
+    // ИГРОК
+    const p = {
+        x: 0, y: 0, r: 18, hp: 100, maxHp: 100, spd: 4.5,
+        w: 0, rel: 0, // Текущее оружие и перезарядка
+        heat: 0, over: false, // Перегрев минигана
+        sup: 0, // Таймер суперспособности
+        dual: 1 // Сторона для двойных пистолетов
+    };
+
+    // БАЗА ОРУЖИЯ
+    const WDB = [
+        { n: "Базука", sn: "Ядерка", dmg: 120, rel: 90, spd: 8, col: "#e67e22", type: "rocket" },
+        { n: "Автомат", sn: "Огнемет", dmg: 16, rel: 7, spd: 16, col: "#f1c40f", type: "rifle" },
+        { n: "2 Пистолета", sn: "Стихии", dmg: 24, rel: 12, spd: 14, col: "#3498db", type: "dual" },
+        { n: "Меч", sn: "Смерч 360°", dmg: 75, rel: 25, range: 140, col: "#bdc3c7", type: "melee" },
+        { n: "Миниган", sn: "Бесконечность", dmg: 10, rel: 3, spd: 18, col: "#7f8c8d", type: "mini", price: 300, bought: false },
+        { n: "Дробовик", sn: "Шквал 360°", dmg: 18, rel: 45, spd: 12, col: "#95a5a6", type: "shot" },
+        { n: "Клинок", sn: "Вампиризм", dmg: 45, rel: 20, range: 110, col: "#c0392b", type: "blade" },
+        { n: "Сингуляр", sn: "Черная дыра", dmg: 2, rel: 140, spd: 5, col: "#9b59b6", type: "sing" }
+    ];
+
+    // МАССИВЫ ОБЪЕКТОВ
+    let en = [];      // Враги
+    let bul = [];     // Пули
+    let part = [];    // Частицы взрывов
+    let texts = [];   // Текст урона
+    let slashes = []; // Взмахи мечом
+    let holes = [];   // Черные дыры
+
+    // УПРАВЛЕНИЕ
+    const inp = {
+        m: { a: false, x: 0, y: 0, id: null, sx: 0, sy: 0 }, // Движение
+        s: { a: false, ang: 0, id: null, sx: 0, sy: 0 }      // Стрельба
+    };
+
+    // ФУНКЦИИ UI (Доступны глобально)
+    window.equip = function(i) {
+        let wp = WDB[i];
+        if (wp.price && coins < wp.price && !wp.bought) { alert(`Нужно ${wp.price} монет!`); return; }
+        if (wp.price && !wp.bought) { coins -= wp.price; wp.bought = true; }
+        
+        p.w = i;
+        document.querySelectorAll('.btn-w').forEach((b, idx) => b.classList.toggle('active', idx === i));
+        document.getElementById('ui-wname').innerText = wp.n;
+        document.getElementById('ui-wsup').innerText = wp.sn;
+        document.getElementById('heat-bg').style.display = wp.type === 'mini' ? 'block' : 'none';
+    };
+
+    window.activateSuper = function() {
+        if (coins >= 100 && p.sup <= 0) { coins -= 100; p.sup = 360; }
+    };
+
+    // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+    function spawnTxt(x, y, txt, col) { texts.push({ x: x+(Math.random()-0.5)*20, y, txt, col, l: 40, vy: -1 }); }
+    function spawnPart(x, y, col, cnt, spd) {
+        for(let i=0; i<cnt; i++) part.push({ x, y, vx: (Math.random()-0.5)*spd, vy: (Math.random()-0.5)*spd, c: col, l: 20+Math.random()*20, s: 2+Math.random()*4 });
+    }
+    
+    function dmgPlayer(amount) {
+        if (armor > 0) { armor -= amount; if (armor < 0) { p.hp += armor; armor = 0; } } else { p.hp -= amount; }
+        if (p.hp <= 0 && gameState === 'play') {
+            gameState = 'dead';
+            document.getElementById('screen-death').style.display = 'flex';
+            document.getElementById('ui-final-room').innerText = room;
+        }
+    }
+
+    function spawnEnemies() {
+        en = []; bul = []; holes = []; slashes = [];
+        let count = 4 + Math.floor(room * 1.5);
+        for(let i=0; i<count; i++) {
+            let ex, ey; do { ex = Math.random()*W; ey = Math.random()*H; } while(Math.hypot(ex-p.x, ey-p.y) < 250);
+            let t = 'n', h = 100 + room*30, s = 30, sp = 1.5 + Math.random()*0.5;
+            if (room>=3 && i===0) { t='b'; h*=5; s=65; sp*=0.6; } // Босс
+            if (room>=5 && i===1) { t='r'; h*=0.7; s=22; sp*=1.5; } // Бегун
+            en.push({ x: ex, y: ey, t, hp: h, max: h, s, sp, fx: 0 }); // fx: статус эффект
+        }
+    }
+
+    // ЛОГИКА СТРЕЛЬБЫ
+    function handleShooting() {
+        let wp = WDB[p.w], isS = p.sup > 0, ang = inp.s.ang;
+
+        if (wp.type === 'rocket') {
+            if(isS) { bul.push({ x:p.x, y:p.y, vx:Math.cos(ang)*5, vy:Math.sin(ang)*5, c:"#ff4757", d:wp.dmg*3, l:200, ex:"nuke" }); p.rel = wp.rel; }
+            else { bul.push({ x:p.x, y:p.y, vx:Math.cos(ang)*wp.spd, vy:Math.sin(ang)*wp.spd, c:wp.col, d:wp.dmg, l:150, ex:"boom" }); p.rel = wp.rel; }
+        } 
+        else if (wp.type === 'rifle') {
+            if(isS) { 
+                let spread = ang + (Math.random()-0.5)*0.3;
+                bul.push({ x:p.x, y:p.y, vx:Math.cos(spread)*18, vy:Math.sin(spread)*18, c:"#e67e22", d:wp.dmg, l:60, fx:"fire" }); 
+                p.rel = 3; 
+            } else { bul.push({ x:p.x, y:p.y, vx:Math.cos(ang)*wp.spd, vy:Math.sin(ang)*wp.spd, c:wp.col, d:wp.dmg, l:120 }); p.rel = wp.rel; }
+        }
+        else if (wp.type === 'dual') {
+            let ox = p.x + Math.cos(ang+Math.PI/2) * 15 * p.dual;
+            let oy = p.y + Math.sin(ang+Math.PI/2) * 15 * p.dual;
+            p.dual *= -1; // Меняем ствол
+            let fx = isS ? (p.sup > 240 ? "ice" : (p.sup > 120 ? "fire" : "psn")) : null;
+            bul.push({ x:ox, y:oy, vx:Math.cos(ang)*wp.spd, vy:Math.sin(ang)*wp.spd, c:isS?"#fff":wp.col, d:wp.dmg, l:100, fx });
+            p.rel = isS ? wp.rel/2 : wp.rel;
+        }
+        else if (wp.type === 'melee' || wp.type === 'blade') {
+            let c = (isS && wp.type==='melee') ? "#f1c40f" : wp.col;
+            slashes.push({ x:p.x, y:p.y, a:ang, r:wp.range, c:c, l:12, ml:12, circ: (isS && wp.type==='melee') });
+            en.forEach(e => {
+                let d = Math.hypot(e.x-p.x, e.y-p.y);
+                let hitAng = Math.abs(ang - Math.atan2(e.y-p.y, e.x-p.x));
+                if (d <= wp.range && (hitAng < 1.0 || (isS && wp.type==='melee'))) {
+                    let dReal = wp.dmg * (isS?1.5:1); e.hp -= dReal;
+                    spawnTxt(e.x, e.y, Math.floor(dReal), "#fff");
+                    if (wp.type === 'blade' && isS) { p.hp = Math.min(p.maxHp, p.hp+5); spawnTxt(p.x, p.y, "+5", "#2ecc71"); e.fx="psn"; }
+                }
+            }); p.rel = wp.rel;
+        }
+        else if (wp.type === 'mini' && !p.over) {
+            let spread = ang + (Math.random()-0.5)*0.2;
+            bul.push({ x:p.x, y:p.y, vx:Math.cos(spread)*wp.spd, vy:Math.sin(spread)*wp.spd, c:wp.col, d:wp.dmg, l:120 });
+            if (!isS) { p.heat += 2.5; if (p.heat >= 100) p.over = true; } p.rel = wp.rel;
+        }
+        else if (wp.type === 'shot') {
+            let count = isS ? 12 : 5;
+            let step = isS ? (Math.PI*2/count) : 0.15;
+            for(let i=0; i<count; i++) {
+                let a = isS ? i*step : ang + (i-2)*step;
+                bul.push({ x:p.x, y:p.y, vx:Math.cos(a)*wp.spd, vy:Math.sin(a)*wp.spd, c:wp.col, d:wp.dmg, l:70 });
+            } p.rel = wp.rel;
+        }
+        else if (wp.type === 'sing') {
+            bul.push({ x:p.x, y:p.y, vx:Math.cos(ang)*wp.spd, vy:Math.sin(ang)*wp.spd, c:wp.col, d:0, l:120, ex:isS?"shole":"hole" });
+            p.rel = wp.rel;
+        }
+    }
+
+    // ОБНОВЛЕНИЕ ЛОГИКИ
+    function update() {
+        if (gameState !== 'play') return;
+        frames++;
+
+        // Движение игрока
+        if (inp.m.a) { p.x += inp.m.x*p.spd; p.y += inp.m.y*p.spd; }
+        p.x = Math.max(p.r, Math.min(W-p.r, p.x)); p.y = Math.max(p.r, Math.min(H-p.r, p.y));
+
+        // Таймеры и перегрев
+        if (p.rel > 0) p.rel--;
+        if (p.sup > 0) {
+            p.sup--;
+            document.getElementById('btn-super').className = "active";
+        } else {
+            document.getElementById('btn-super').className = coins>=100 ? "ready" : "";
+        }
+
+        if (p.over) { p.heat -= 1; if(p.heat<=0){ p.heat=0; p.over=false; } } 
+        else if (p.heat > 0 && !inp.s.a) { p.heat -= 0.5; }
+
+        if (inp.s.a && p.rel <= 0) handleShooting();
+
+        // Черные дыры
+        for(let i = holes.length-1; i>=0; i--) {
+            let h = holes[i]; h.l--;
+            en.forEach(e => {
+                if(Math.hypot(e.x-h.x, e.y-h.y) < h.r) { e.x += (h.x-e.x)*h.f; e.y += (h.y-e.y)*h.f; e.hp -= h.d; }
+            });
+            if (h.l <= 0) holes.splice(i, 1);
+        }
+
+        // Враги (БЕЗОПАСНЫЙ ЦИКЛ)
+        for (let i = en.length-1; i>=0; i--) {
+            let e = en[i];
+            let dx = p.x - e.x, dy = p.y - e.y, d = Math.hypot(dx, dy);
+            
+            let spdMod = 1;
+            if (e.fx === "ice") { spdMod = 0.3; if(frames%60===0) e.fx=0; }
+            if (e.fx === "fire") { e.hp -= 0.5; if(frames%120===0) e.fx=0; }
+            if (e.fx === "psn") { e.hp -= 1.0; if(frames%180===0) e.fx=0; }
+
+            e.x += (dx/d)*e.sp*spdMod; e.y += (dy/d)*e.sp*spdMod;
+            if (d < p.r + e.s/2) dmgPlayer(0.5);
+
+            if (e.hp <= 0) {
+                coins += (e.t === 'b') ? 50 : 15;
+                spawnPart(e.x, e.y, "#95a5a6", 15, 12);
+                en.splice(i, 1);
+            }
+        }
+        if (en.length === 0) { room++; spawnEnemies(); }
+
+        // Пули (БЕЗОПАСНЫЙ ЦИКЛ)
+        for (let i = bul.length-1; i>=0; i--) {
+            let b = bul[i]; b.x += b.vx; b.y += b.vy; b.l--;
+            if (b.x < -50 || b.x > W+50 || b.y < -50 || b.y > H+50) b.l = 0;
+
+            for(let e of en) {
+                if (Math.hypot(b.x-e.x, b.y-e.y) < e.s/2) {
+                    if (b.ex === "boom") {
+                        spawnPart(b.x, b.y, "#e67e22", 20, 15);
+                        en.forEach(ex=>{ if(Math.hypot(ex.x-b.x, ex.y-b.y)<100) { ex.hp-=b.d*1.5; spawnTxt(ex.x, ex.y, b.d*1.5, "#e67e22"); } });
+                    } else if (b.ex === "nuke") {
+                        spawnPart(b.x, b.y, "#ff4757", 40, 20);
+                        en.forEach(ex=>{ if(Math.hypot(ex.x-b.x, ex.y-b.y)<250) { ex.hp-=b.d; spawnTxt(ex.x, ex.y, b.d, "#ff4757"); } });
+                    } else if (b.ex === "hole") {
+                        holes.push({ x:b.x, y:b.y, r:130, f:0.05, d:0.5, l:180 });
+                    } else if (b.ex === "shole") {
+                        holes.push({ x:b.x, y:b.y, r:250, f:0.08, d:2, l:240 });
+                    } else {
+                        e.hp -= b.d; spawnTxt(e.x, e.y, b.d, "#fff");
+                        if (b.fx) e.fx = b.fx;
+                    }
+                    b.l = 0; break;
+                }
+            }
+            if (b.l <= 0) bul.splice(i, 1);
+        }
+
+        // Эффекты
+        for(let i=part.length-1; i>=0; i--) { let pt=part[i]; pt.x+=pt.vx; pt.y+=pt.vy; pt.l--; if(pt.l<=0) part.splice(i,1); }
+        for(let i=texts.length-1; i>=0; i--) { let t=texts[i]; t.y+=t.vy; t.l--; if(t.l<=0) texts.splice(i,1); }
+        for(let i=slashes.length-1; i>=0; i--) { let s=slashes[i]; s.x=p.x; s.y=p.y; s.l--; if(s.l<=0) slashes.splice(i,1); }
+
+        // Обновление UI
+        document.getElementById('ui-hp').innerText = Math.floor(p.hp);
+        document.getElementById('ui-arm').innerText = armor;
+        document.getElementById('ui-coins').innerText = coins;
+        document.getElementById('ui-room').innerText = room;
+        
+        let hFill = document.getElementById('heat-fill');
+        hFill.style.width = p.heat + "%"; hFill.style.background = p.over ? "#ff4757" : "linear-gradient(90deg, #ffa502, #ff4757)";
+    }
+
+    // ОТРИСОВКА
+    function draw() {
+        ctx.fillStyle = "#111"; ctx.fillRect(0, 0, W, H);
+
+        // Черные дыры
+        for(let h of holes) {
+            ctx.fillStyle = `rgba(142,68,173,${h.l/240})`; ctx.beginPath(); ctx.arc(h.x, h.y, h.r, 0, Math.PI*2); ctx.fill();
+        }
+
+        // Враги
+        for(let e of en) {
+            ctx.fillStyle = e.fx==="ice"?"#74b9ff":e.fx==="fire"?"#ff7675":(e.t==='b'?"#d35400":e.t==='r'?"#f39c12":"#95a5a6");
+            ctx.fillRect(e.x-e.s/2, e.y-e.s/2, e.s, e.s);
+            ctx.fillStyle = "#2ecc71"; ctx.fillRect(e.x-e.s/2, e.y-e.s/2-8, e.s*(e.hp/e.max), 4);
+        }
+
+        // Пули и частицы
+        for(let b of bul) { ctx.fillStyle = b.c; ctx.beginPath(); ctx.arc(b.x, b.y, 5, 0, Math.PI*2); ctx.fill(); }
+        for(let pt of part) { ctx.fillStyle = pt.c; ctx.globalAlpha = pt.l/40; ctx.fillRect(pt.x, pt.y, pt.s, pt.s); ctx.globalAlpha = 1; }
+
+        // Взмахи мечом
+        for(let s of slashes) {
+            ctx.save(); ctx.translate(s.x, s.y); ctx.rotate(s.a);
+            ctx.strokeStyle = s.c; ctx.globalAlpha = s.l/s.ml; ctx.lineWidth = 10*(s.l/s.ml);
+            ctx.beginPath(); if(s.circ) ctx.arc(0,0,s.r,0,Math.PI*2); else ctx.arc(0,0,s.r,-1,1); ctx.stroke();
+            ctx.restore();
+        }
+
+        // Игрок
+        ctx.fillStyle = "#3498db"; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill();
+        if (p.sup>0) { ctx.strokeStyle="#ffa502"; ctx.lineWidth=3; ctx.stroke(); }
+
+        // Тексты
+        ctx.font = "bold 16px Arial";
+        for(let t of texts) { ctx.fillStyle=t.col; ctx.globalAlpha=t.l/40; ctx.fillText(t.txt, t.x, t.y); ctx.globalAlpha=1; }
+    }
+
+    function loop() { update(); draw(); requestAnimationFrame(loop); }
+
+    // ТАЧ-КОНТРОЛЛЕР (ЗАЩИЩЕН ОТ КНОПОК)
+    window.addEventListener('touchstart', e => {
+        // ЕСЛИ НАЖАЛИ НА UI КНОПКУ — ПРОПУСКАЕМ НАЖАТИЕ, НЕ БЛОКИРУЕМ!
+        if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
+        
+        for (let t of e.changedTouches) {
+            if (t.clientX < W/2) { inp.m.a = true; inp.m.id = t.identifier; inp.m.sx = t.clientX; inp.m.sy = t.clientY; }
+            else { inp.s.a = true; inp.s.id = t.identifier; inp.s.sx = t.clientX; inp.s.sy = t.clientY; inp.s.ang = Math.atan2(t.clientY-inp.s.sy, t.clientX-inp.s.sx); }
+        }
+    });
+    window.addEventListener('touchmove', e => {
+        if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return;
+        e.preventDefault(); 
+        for (let t of e.changedTouches) {
+            if (t.identifier === inp.m.id) {
+                let dx = t.clientX-inp.m.sx, dy = t.clientY-inp.m.sy, d = Math.hypot(dx,dy);
+                if (d > 5) { inp.m.x = dx/d; inp.m.y = dy/d; } else { inp.m.x = 0; inp.m.y = 0; }
+            }
+            if (t.identifier === inp.s.id) {
+                let dx = t.clientX-inp.s.sx, dy = t.clientY-inp.s.sy;
+                if (Math.hypo
