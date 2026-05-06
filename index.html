@@ -398,4 +398,21 @@ window.onload = function() {
             }
             if (t.identifier === inp.s.id) {
                 let dx = t.clientX-inp.s.sx, dy = t.clientY-inp.s.sy;
-                if (Math.hypo
+                            if (Math.hypot(dx,dy) > 10) inp.s.ang = Math.atan2(dy,dx);
+            }
+        }
+    }, { passive: false });
+    window.addEventListener('touchend', e => {
+        for (let t of e.changedTouches) {
+            if (t.identifier === inp.m.id) { inp.m.a = false; inp.m.x = 0; inp.m.y = 0; }
+            if (t.identifier === inp.s.id) { inp.s.a = false; }
+        }
+    });
+
+    resize();
+    spawnEnemies();
+    requestAnimationFrame(loop);
+};
+</script>
+</body>
+</html>
