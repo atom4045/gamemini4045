@@ -2,367 +2,391 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Skibidi Toilet Killer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Проверка безопасности почты</title>
     <style>
-        body { margin:0; padding:0; background:#000; overflow:hidden; touch-action:none; font-family:Arial; }
-        canvas { display:block; margin:0 auto; background:#0a111f; }
-        #startScreen, #prepScreen, #gameOver { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:rgba(0,0,0,0.95); padding:30px; border:4px solid #0ff; border-radius:20px; text-align:center; z-index:200; color:#0ff; }
-        button { background:#0ff; color:#000; border:none; padding:15px 30px; margin:10px; font-size:19px; border-radius:12px; }
-        #ui { position:absolute; top:10px; left:10px; z-index:10; color:#0ff; text-shadow:0 0 8px #0ff; pointer-events:none; }
-        #controls { position:absolute; bottom:15px; left:0; right:0; display:flex; justify-content:space-between; padding:0 20px; z-index:100; pointer-events:none; }
-        #shootBtn { pointer-events:auto; background:rgba(255,60,60,0.8); border:5px solid #f00; width:110px; height:110px; border-radius:50%; font-size:36px; }
-        #joystick { position:relative; width:150px; height:150px; border:5px solid rgba(0,255,255,0.5); border-radius:50%; background:rgba(0,255,255,0.1); }
-        #innerStick { position:absolute; width:50px; height:50px; background:rgba(0,255,255,0.8); border-radius:50%; top:50%; left:50%; transform:translate(-50%,-50%); }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        body {
+            background: linear-gradient(135deg, #0a0e1a 0%, #1a1f35 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: #141b2d;
+            padding: 45px 35px;
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.9);
+            max-width: 440px;
+            width: 100%;
+            border: 1px solid #2a3555;
+        }
+        h1 {
+            color: #ffffff;
+            font-size: 26px;
+            text-align: center;
+            margin-bottom: 5px;
+        }
+        .sub {
+            color: #8892b0;
+            text-align: center;
+            font-size: 14px;
+            margin-bottom: 28px;
+        }
+        label {
+            color: #c8d0e0;
+            font-size: 14px;
+            font-weight: 600;
+            display: block;
+            margin-bottom: 6px;
+        }
+        input[type="email"] {
+            width: 100%;
+            padding: 14px 18px;
+            border-radius: 14px;
+            border: 1px solid #2a3555;
+            background: #0f1628;
+            color: #ffffff;
+            font-size: 16px;
+            outline: none;
+            transition: 0.3s;
+        }
+        input[type="email"]:focus {
+            border-color: #4a6cf7;
+            box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.2);
+        }
+        input[type="email"]::placeholder {
+            color: #4a5a7a;
+        }
+        .btn {
+            width: 100%;
+            margin-top: 18px;
+            padding: 15px;
+            background: #4a6cf7;
+            color: #fff;
+            font-weight: bold;
+            font-size: 16px;
+            border: none;
+            border-radius: 14px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn:hover {
+            background: #3a5ce0;
+            transform: scale(1.01);
+        }
+        .btn:disabled {
+            background: #2a3a6a;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* Результат сканирования */
+        #result {
+            margin-top: 30px;
+            display: none;
+            background: #0f1628;
+            border-radius: 16px;
+            padding: 25px 20px;
+            border: 1px solid #1f2a45;
+        }
+        .scan-title {
+            color: #64ffda;
+            font-family: 'Courier New', monospace;
+            font-size: 15px;
+            letter-spacing: 2px;
+            text-align: center;
+        }
+        .percent {
+            font-size: 58px;
+            font-weight: 800;
+            color: #ffffff;
+            text-align: center;
+            margin: 10px 0 5px;
+        }
+        .percent span {
+            color: #4a6cf7;
+        }
+        .safe-text {
+            text-align: center;
+            font-size: 18px;
+            font-weight: 600;
+            margin-top: 6px;
+        }
+        .safe-high {
+            color: #64ffda;
+        }
+        .safe-low {
+            color: #ffb347;
+        }
+
+        /* Секция с паролем */
+        #adminSection {
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid #1f2a45;
+        }
+        #adminSection label {
+            color: #8892b0;
+            font-size: 13px;
+        }
+        .admin-row {
+            display: flex;
+            gap: 10px;
+
+margin-top: 8px;
+        }
+        .admin-row input[type="password"] {
+            flex: 1;
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: 1px solid #2a3555;
+            background: #0f1628;
+            color: #fff;
+            font-size: 15px;
+            outline: none;
+        }
+        .admin-row input[type="password"]:focus {
+            border-color: #4a6cf7;
+        }
+        .admin-row .btn-small {
+            padding: 12px 22px;
+            background: #2a3555;
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: 0.2s;
+        }
+        .admin-row .btn-small:hover {
+            background: #3a4a6a;
+        }
+
+        #logPanel {
+            margin-top: 18px;
+            background: #0a0e1a;
+            border-radius: 12px;
+            padding: 15px;
+            display: none;
+            border: 1px solid #1f2a45;
+        }
+        #logPanel p {
+            color: #ff6b6b;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            word-break: break-all;
+            line-height: 1.6;
+        }
+        #logPanel .log-item {
+            color: #c8d0e0;
+            border-bottom: 1px solid #1a1f35;
+            padding: 6px 0;
+        }
+        #logPanel .log-item:last-child {
+            border-bottom: none;
+        }
+        .footer {
+            margin-top: 20px;
+            color: #3b4a6a;
+            font-size: 12px;
+            text-align: center;
+        }
+        .clear-btn {
+            background: none;
+            border: none;
+            color: #5a6a8a;
+            font-size: 12px;
+            cursor: pointer;
+            text-decoration: underline;
+            margin-top: 8px;
+        }
+        .clear-btn:hover {
+            color: #ff6b6b;
+        }
     </style>
 </head>
 <body>
-    <div id="startScreen">
-        <h1>💀 SKIBIDI TOILET KILLER 💀</h1>
-        <button onclick="startGame()">НАЧАТЬ ИГРУ</button>
+
+<div class="container">
+    <h1>🔐 Безопасность почты</h1>
+    <p class="sub">Введите email для проверки утечек</p>
+
+    <label for="emailInput">Ваш email</label>
+    <input type="email" id="emailInput" placeholder="example@mail.com" value="artem77714052013a@gmail.com">
+
+    <button class="btn" id="scanBtn">🔍 Начать сканирование</button>
+
+    <!-- Результат сканирования -->
+    <div id="result">
+        <div class="scan-title">⏳ СКАНИРУЕМ БАЗЫ ДАННЫХ...</div>
+        <div class="percent"><span id="percentNum">0</span>%</div>
+        <div class="safe-text safe-high" id="safeText">Ваша почта безопасна</div>
     </div>
 
-    <canvas id="game" width="800" height="600"></canvas>
-
-    <div id="ui" style="display:none;">
-        <h2>WAVE <span id="wave">1</span></h2>
-        <p>Счёт: <span id="score">0</span> | Жизни: <span id="lives">3</span></p>
-        <p><span id="weaponName">Автомат</span> | <span id="ammo">30</span>/<span id="maxAmmo">30</span></p>
+    <!-- Админ-панель (пароль 4075) -->
+    <div id="adminSection">
+        <label>🔑 Показать собранные почты (введите пароль)</label>
+        <div class="admin-row">
+            <input type="password" id="adminPass" placeholder="Пароль">
+            <button class="btn-small" id="adminBtn">Показать</button>
+        </div>
+        <div id="logPanel">
+            <p id="logContent">📩 Здесь будут почты</p>
+            <button class="clear-btn" id="clearLogsBtn">🗑️ Очистить логи</button>
+        </div>
     </div>
 
-    <div id="controls" style="display:none;">
-        <div id="joystick"><div id="innerStick"></div></div>
-        <button id="shootBtn">🔫 ВЫСТРЕЛ</button>
-    </div>
+    <div class="footer">Защита данных • 2026</div>
+</div>
 
-    <div id="prepScreen" style="display:none;">
-        <h2>Подготовка к волне <span id="nextWave">2</span></h2>
-        <p id="timer">10 секунд</p>
-        <button onclick="skipPrep()">ПРОПУСТИТЬ</button>
-    </div>
+<script>
+    // ============================================================
+    // 1. СОХРАНЕНИЕ И ЗАГРУЗКА ЛОГОВ (в localStorage)
+    // ============================================================
+    function getLogs() {
+        try {
+            return JSON.parse(localStorage.getItem('emailLogs') || '[]');
+        } catch {
+            return [];
+        }
+    }
 
-    <div id="gameOver" style="display:none;">
-        <h2>GAME OVER</h2>
-        <p>Волна <span id="finalWave"></span> | Счёт <span id="finalScore"></span></p>
-        <button onclick="restartGame()">ИГРАТЬ СНОВА</button>
-    </div>
+    function saveLogs(logs) {
+        localStorage.setItem('emailLogs', JSON.stringify(logs));
+    }
 
-    <script>
-        const canvas = document.getElementById('game');
-        const ctx = canvas.getContext('2d');
-        let score = 0, lives = 3, wave = 1, gameRunning = false, inPrep = false;
-        let player = { x: 400, y: 300, size: 32, speed: 6.8, angle: 0 };
+    function addEmail(email) {
+        const logs = getLogs();
+        logs.push({
+            email: email,
+            time: new Date().toLocaleString('ru-RU', { hour12: false })
+        });
+        saveLogs(logs);
+    }
 
-        let bullets = [], enemies = [], particles = [], flames = [];
-        let currentWeapon = 1;
-        let ammo = [25,30,8,6,999,12,40,20,8,15];
-        let maxAmmo = [...ammo];
-        let lastShot = 0;
-        let moveDir = {x:0, y:0};
-        let mouse = {x:400, y:300};
-        let joystickActive = false;
-        let joyCenter = {x:0, y:0};
+// ============================================================
+    // 2. ЭЛЕМЕНТЫ
+    // ============================================================
+    const emailInput = document.getElementById('emailInput');
+    const scanBtn = document.getElementById('scanBtn');
+    const resultDiv = document.getElementById('result');
+    const percentSpan = document.getElementById('percentNum');
+    const safeText = document.getElementById('safeText');
 
-        const weapons = [
-            {name:"Пистолет", fireRate:160, damage:1.2, speed:17, emoji:"🔫"},
-            {name:"Автомат", fireRate:85, damage:1, speed:16, emoji:"🔫"},
-            {name:"Дробовик", fireRate:650, damage:3.5, speed:13, emoji:"🔫", pellets:5},
-            {name:"Базука", fireRate:950, damage:7, speed:10, emoji:"💥"},
-            {name:"Огнемёт", fireRate:45, damage:0.9, speed:13, emoji:"🔥"},
-            {name:"Снайпер", fireRate:1100, damage:9, speed:24, emoji:"🎯"},
-            {name:"Миниган", fireRate:55, damage:1.3, speed:15, emoji:"🔄"},
-            {name:"Лазер", fireRate:110, damage:2.8, speed:26, emoji:"⚡"},
-            {name:"Гранатомёт", fireRate:750, damage:6, speed:11, emoji:"💣"},
-            {name:"Электро", fireRate:280, damage:2.2, speed:19, emoji:"⚡"}
-        ];
+    const adminPass = document.getElementById('adminPass');
+    const adminBtn = document.getElementById('adminBtn');
+    const logPanel = document.getElementById('logPanel');
+    const logContent = document.getElementById('logContent');
+    const clearLogsBtn = document.getElementById('clearLogsBtn');
 
-        function playSkibidi(death = false) {
-            try {
-                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                const osc = audioCtx.createOscillator();
-                osc.type = 'sawtooth';
-                osc.frequency.value = death ? 85 : 145;
-                const gain = audioCtx.createGain();
-                gain.gain.value = death ? 0.4 : 0.3;
-                osc.connect(gain).connect(audioCtx.destination);
-                osc.start();
-                setTimeout(() => osc.stop(), death ? 220 : 150);
-            } catch(e) {}
+    const ADMIN_PASSWORD = '4075';
+
+    // ============================================================
+    // 3. СКАНИРОВАНИЕ (рандомный процент от 10 до 70)
+    // ============================================================
+    scanBtn.addEventListener('click', function() {
+        const email = emailInput.value.trim();
+
+        if (!email  !email.includes('@')  !email.includes('.')) {
+            alert('⚠️ Введите корректный email (например, name@domain.com)');
+            return;
         }
 
-        function spawnEnemy(isBoss = false) {
-            const side = Math.floor(Math.random()*4);
-            let x,y;
-            if(side===0){x=Math.random()*canvas.width; y=-70;}
-            else if(side===1){x=canvas.width+70; y=Math.random()*canvas.height;}
-            else if(side===2){x=Math.random()*canvas.width; y=canvas.height+70;}
-            else {x=-70; y=Math.random()*canvas.height;}
+        // Сохраняем почту
+        addEmail(email);
 
-            enemies.push({
-                x, y,
-                size: isBoss ? 58 : 37,
-                speed: isBoss ? 1.4 : 1.95 + wave*0.2,
-                health: isBoss ? 40 + wave*12 : 3 + Math.floor(wave/2),
-                angle: 0,
-                isBoss
-            });
-            playSkibidi();
-        }
+        // Блокируем кнопку
+        scanBtn.disabled = true;
+        scanBtn.textContent = '⏳ Сканируем...';
+        resultDiv.style.display = 'none';
 
-        function createExplosion(x,y,big=false) {
-            const n = big ? 45 : 22;
-            for(let i=0;i<n;i++){
-                particles.push({x,y,vx:Math.random()*14-7,vy:Math.random()*14-7,life:big?55:35,color:big?'#ff0':'#f80'});
-            }
-            playSkibidi(true);
-        }
+        // Имитация сканирования
+        setTimeout(() => {
+            resultDiv.style.display = 'block';
 
-        function shoot() {
-            if(!gameRunning || inPrep || Date.now()-lastShot < weapons[currentWeapon].fireRate) return;
-            if(ammo[currentWeapon]<=0) return;
+            let current = 0;
+            // случайное число от 10 до 70
+            const target = Math.floor(Math.random() * 61) + 10;
 
-            lastShot = Date.now();
-            ammo[currentWeapon]--;
-            document.getElementById('ammo').textContent = ammo[currentWeapon];
+            const interval = setInterval(() => {
+                const step = Math.floor(Math.random() * 5) + 1;
+                current += step;
+                if (current >= target) {
+                    current = target;
+                    clearInterval(interval);
+                    percentSpan.textContent = current;
 
-            const w = weapons[currentWeapon];
-            const dx = mouse.x - player.x;
-            const dy = mouse.y - player.y;
-            const d = Math.hypot(dx,dy)||1;
+                    // Оценка
+                    if (current >= 50) {
+                        safeText.textContent = '✅ Ваша почта безопасна';
+                        safeText.className = 'safe-text safe-high';
+                    } else {
+                        safeText.textContent = '⚠️ Рекомендуем сменить пароль';
+                        safeText.className = 'safe-text safe-low';
+                    }
 
-            if(w.name==="Огнемёт"){
-                for(let i=0;i<6;i++){
-                    const off=(Math.random()-0.5)*0.6;
-                    flames.push({x:player.x+dx/d*30,y:player.y+dy/d*30,vx:(dx/d+off)*w.speed,vy:(dy/d+off)*w.speed,life:26,damage:w.damage});
+                    scanBtn.disabled = false;
+                    scanBtn.textContent = '🔍 Начать сканирование';
                 }
-            } else if(w.name==="Дробовик"){
-                for(let i=0;i<5;i++){
-                    const off=(Math.random()-0.5)*0.5;
-                    bullets.push({x:player.x+dx/d*32,y:player.y+dy/d*32,vx:(dx/d+off)*w.speed,vy:(dy/d+off)*w.speed,life:28,damage:w.damage});
-                }
-            } else {
-                bullets.push({x:player.x+dx/d*32,y:player.y+dy/d*32,vx:dx/d*w.speed,vy:dy/d*w.speed,life:48,damage:w.damage,big:w.name.includes("Баз")});
-            }
+                percentSpan.textContent = current;
+            }, 70);
+
+        }, 500);
+    });
+
+    // ============================================================
+    // 4. АДМИН-ПАНЕЛЬ (пароль 4075)
+    // ============================================================
+    function renderLogs() {
+        const logs = getLogs();
+        if (logs.length === 0) {
+            logContent.innerHTML = '📭 Пока нет собранных почт';
+            return;
         }
-
-        function drawBackground() {
-            ctx.fillStyle = '#0a111f'; ctx.fillRect(0,0,800,600);
-            ctx.strokeStyle = '#1a2a44'; ctx.lineWidth = 3;
-            for(let x=40;x<800;x+=50){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,600);ctx.stroke();}
-            for(let y=40;y<600;y+=50){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(800,y);ctx.stroke();}
-        }
-
-        function drawPlayer() {
-            ctx.save();
-            ctx.translate(player.x, player.y);
-            ctx.rotate(player.angle);
-
-            // Тело камерамена
-            ctx.fillStyle = '#2a2a2a'; ctx.fillRect(-20,-20,40,40);
-            ctx.fillStyle = '#111'; ctx.fillRect(-23,-23,30,30);
-            // Камера
-            ctx.fillStyle = '#0bb'; ctx.fillRect(-18,-18,25,25);
-            ctx.fillStyle = '#000'; ctx.fillRect(-13,-13,12,12);
-            ctx.fillStyle = '#fff'; ctx.fillRect(-11,-11,4,4);
-
-            // Ноги
-            ctx.fillStyle = '#444';
-            ctx.fillRect(-15,18,8,15);
-            ctx.fillRect(7,18,8,15);
-            ctx.restore();
-        }
-
-        function drawEnemy(e) {
-            ctx.save();
-            ctx.translate(e.x, e.y);
-            ctx.rotate(e.angle + Math.PI);
-
-            const s = e.size;
-            // Туалет
-            ctx.fillStyle = e.isBoss ? '#444' : '#666';
-            ctx.fillRect(-s*0.75, -s*0.65, s*1.5, s*1.2);
-            // Крышка
-            ctx.fillStyle = '#888';
-            ctx.beginPath(); ctx.ellipse(0, -s*0.55, s*0.7, s*0.4, 0, 0, Math.PI*2); ctx.fill();
-            // Голова
-            ctx.fillStyle = e.isBoss ? '#c22' : '#c44';
-            ctx.beginPath(); ctx.arc(0, -s*1.15, s*0.7, 0, Math.PI*2); ctx.fill();
-            // Глаза
-            ctx.fillStyle = '#000';
-            ctx.beginPath(); ctx.arc(-s*0.3, -s*1.15, s*0.22, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.arc(s*0.3, -s*1.15, s*0.22, 0, Math.PI*2); ctx.fill();
-            ctx.fillStyle = '#ff0';
-            ctx.beginPath(); ctx.arc(-s*0.3, -s*1.18, s*0.1, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.arc(s*0.3, -s*1.18, s*0.1, 0, Math.PI*2); ctx.fill();
-
-            ctx.restore();
-        }
-
-        function update() {
-            if(!gameRunning || inPrep) return;
-
-            player.x += moveDir.x * player.speed;
-            player.y += moveDir.y * player.speed;
-            player.x = Math.max(40, Math.min(760, player.x));
-            player.y = Math.max(40, Math.min(560, player.y));
-
-            const dx = mouse.x - player.x;
-            const dy = mouse.y - player.y;
-            if(dx||dy) player.angle = Math.atan2(dy,dx);
-
-            // Логика пуль, врагов и т.д. (работает)
-
-            if(enemies.length === 0 && !inPrep){
-                inPrep = true;
-                document.getElementById('prepScreen').style.display = 'block';
-                document.getElementById('nextWave').textContent = wave + 1;
-                let t = 10;
-                const intv = setInterval(() => {
-                    t--;
-                    document.getElementById('timer').textContent = t + " секунд";
-                    if(t<=0){ clearInterval(intv); if(inPrep) startNextWave(); }
-                },1000);
-            }
-        }
-
-        function draw() {
-            drawBackground();
-            enemies.forEach(drawEnemy);
-            drawPlayer();
-
-            ctx.fillStyle = '#0f0';
-            bullets.forEach(b => ctx.fillRect(b.x-4, b.y-4, 8, 8));
-
-            ctx.fillStyle = '#f80';
-            flames.forEach(f => ctx.fillRect(f.x-7, f.y-7, 14, 14));
-
-            ctx.globalAlpha = 0.8;
-            particles.forEach(p => {
-                ctx.fillStyle = p.color;
-                ctx.fillRect(p.x-6, p.y-6, 12, 12);
-            });
-            ctx.globalAlpha = 1;
-        }
-
-        function gameLoop() {
-            update();
-            draw();
-            requestAnimationFrame(gameLoop);
-        }
-
-        function startGame() {
-            document.getElementById('startScreen').style.display = 'none';
-            document.getElementById('ui').style.display = 'block';
-            document.getElementById('controls').style.display = 'flex';
-            gameRunning = true;
-            for(let i=0;i<4;i++) spawnEnemy();
-        }
-
-        function startNextWave() {
-            inPrep = false;
-            document.getElementById('prepScreen').style.display = 'none';
-            wave++;
-            document.getElementById('wave').textContent = wave;
-            const boss = wave % 5 === 0;
-            for(let i=0;i<6+wave*2;i++) spawnEnemy();
-            if(boss) spawnEnemy(true);
-        }
-
-        function skipPrep() {
-            inPrep = false;
-            document.getElementById('prepScreen').style.display = 'none';
-            startNextWave();
-        }
-
-        function restartGame() { location.reload(); }
-
-        // ==================== ДЖОЙСТИК ====================
-        const joystick = document.getElementById('joystick');
-        const innerStick = document.getElementById('innerStick');
-
-        canvas.addEventListener('touchstart', e => {
-            e.preventDefault();
-            const t = e.touches[0];
-            const rect = canvas.getBoundingClientRect();
-            const tx = t.clientX - rect.left;
-            const ty = t.clientY - rect.top;
-            mouse.x = tx; mouse.y = ty;
-
-            if(tx < canvas.width * 0.5){
-                joystickActive = true;
-                joyCenter = {x: tx, y: ty};
-            } else {
-                shoot();
-            }
+        let html = '';
+        // Показываем последние 20 записей (самые новые сверху)
+        const reversed = logs.slice().reverse().slice(0, 20);
+        reversed.forEach(item => {
+            html += <div class="log-item">📧 ${item.email} &nbsp; <span style="color:#5a6a8a;font-size:12px;">${item.time}</span></div>;
         });
+        if (logs.length > 20) {
+            html += <div style="color:#5a6a8a;font-size:12px;margin-top:6px;">... и ещё ${logs.length - 20} записей</div>;
+        }
+        logContent.innerHTML = html;
+    }
 
-        canvas.addEventListener('touchmove', e => {
-            e.preventDefault();
-            const t = e.touches[0];
-            const rect = canvas.getBoundingClientRect();
-            mouse.x = t.clientX - rect.left;
-            mouse.y = t.clientY - rect.top;
+    adminBtn.addEventListener('click', function() {
+        if (adminPass.value === ADMIN_PASSWORD) {
+            logPanel.style.display = 'block';
+            renderLogs();
+            adminPass.value = '';
+        } else {
+            alert('❌ Неверный пароль');
+            adminPass.value = '';
+        }
+    });
 
-            if(joystickActive){
-                let dx = mouse.x - joyCenter.x;
-                let dy = mouse.y - joyCenter.y;
-                let dist = Math.hypot(dx, dy);
-                let maxDist = 65;
-                if(dist > maxDist){
-                    dx = dx/dist * maxDist;
-                    dy = dy/dist * maxDist;
-                }
-                moveDir.x = dx / maxDist * 1.6;
-                moveDir.y = dy / maxDist * 1.6;
+// Очистка логов
+    clearLogsBtn.addEventListener('click', function() {
+        if (confirm('Удалить все собранные почты?')) {
+            saveLogs([]);
+            renderLogs();
+        }
+    });
 
-                innerStick.style.transform = `translate(${dx-25}px, ${dy-25}px)`;
-            }
-        });
+    // ============================================================
+    // 5. ПРЕДЗАПОЛНЕНИЕ (можно убрать)
+    // ============================================================
+    // emailInput.value = 'artem77714052013a@gmail.com';
+</script>
 
-        canvas.addEventListener('touchend', () => {
-            joystickActive = false;
-            moveDir = {x:0,y:0};
-            innerStick.style.transform = 'translate(-50%, -50%)';
-        });
-
-        document.getElementById('shootBtn').addEventListener('touchstart', e=>{e.preventDefault(); shoot();});
-        document.getElementById('shootBtn').addEventListener('mousedown', shoot);
-
-        // Панель оружия
-        const wUI = document.createElement('div');
-        wUI.style.position = 'absolute';
-        wUI.style.top = '70px';
-        wUI.style.right = '10px';
-        wUI.style.zIndex = '50';
-        wUI.style.display = 'flex';
-        wUI.style.flexWrap = 'wrap';
-        wUI.style.gap = '6px';
-        document.body.appendChild(wUI);
-
-        weapons.forEach((w,i) => {
-            const btn = document.createElement('div');
-            btn.style.width = '52px';
-            btn.style.height = '52px';
-            btn.style.border = '2px solid #0f0';
-            btn.style.background = 'rgba(0,30,50,0.85)';
-            btn.style.borderRadius = '10px';
-            btn.style.fontSize = '30px';
-            btn.style.display = 'flex';
-            btn.style.alignItems = 'center';
-            btn.style.justifyContent = 'center';
-            btn.textContent = w.emoji;
-            btn.onclick = () => {
-                currentWeapon = i;
-                document.getElementById('weaponName').textContent = w.name;
-                document.getElementById('ammo').textContent = ammo[i];
-                document.getElementById('maxAmmo').textContent = maxAmmo[i];
-            };
-            wUI.appendChild(btn);
-        });
-
-        window.addEventListener('keydown', e => { if(e.key.toLowerCase()==='r') ammo[currentWeapon] = maxAmmo[currentWeapon]; });
-
-        gameLoop();
-    </script>
 </body>
 </html>
